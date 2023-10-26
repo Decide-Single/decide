@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Django",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/decide/manage.py",
+            "args": [
+                "runserver",
+                "8001"
+            ],
+            "django": true,
+            "justMyCode": true
+        }
+    ]
+}

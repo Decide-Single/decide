@@ -11,7 +11,7 @@ from locust import (
 )
 
 
-HOST = "http://localhost:8000"
+HOST = "http://localhost:8001"
 VOTING = 1
 
 
