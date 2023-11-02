@@ -9,7 +9,7 @@ RUN pip install ipython
 
 WORKDIR /app
 
-RUN git clone https://github.com/Decide-Single/decide.git .
+RUN git clone https://github.com/egc-L5/decide-single-joaquin1.git .
 RUN pip install -r requirements.txt
 
 WORKDIR /app/decide
