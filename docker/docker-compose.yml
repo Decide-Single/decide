@@ -43,6 +43,8 @@ services:
       - web
     networks:
       - decide
+  
+# Si el puerto 8000 está ocupado, cambiarlo por otro libre
 
 volumes:
   static:
