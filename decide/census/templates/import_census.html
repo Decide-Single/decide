@@ -6,11 +6,13 @@
     <title>Import Census</title>
 </head>
 <body>
-    <form id="importForm" enctype="multipart/form-data">
+    <form id="importForm" enctype="multipart/form-data" method="post">
+        {% csrf_token %}
         <label for="fileInput">Attach a CSV file:</label>
         <input type="file" id="fileInput" name="file" accept=".csv" required>
         <button type="submit">Import Census</button>
     </form>
+
 
     <script>
         document.getElementById('importForm').addEventListener('submit', function(event) {
@@ -35,6 +37,10 @@
             })
             .catch(error => {
                 console.error('There has been a problem with your fetch operation:', error);
+                if (error.response) {
+                    console.error('Response status:', error.response.status);
+                    console.error('Response message:', error.response.statusText);
+                }
             });
         });
     </script>
