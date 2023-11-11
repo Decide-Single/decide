@@ -1,5 +1,6 @@
 from django.db.utils import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
+from django.views import View
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.status import (
@@ -9,6 +10,9 @@ from rest_framework.status import (
         HTTP_401_UNAUTHORIZED as ST_401,
         HTTP_409_CONFLICT as ST_409
 )
+
+import csv
+from django.http import HttpResponse
 
 from base.perms import UserIsStaff
 from .models import Census
@@ -49,3 +53,29 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
         except ObjectDoesNotExist:
             return Response('Invalid voter', status=ST_401)
         return Response('Valid voter')
+
+class ExportCensusToCSV(View):
+
+    def get(self, request):
+        # Obtiene todos los datos del censo que deseas exportar
+        census_data = Census.objects.all()
+
+        # Exporta los datos a CSV
+        response = self.export_to_csv(census_data)
+
+        return response
+
+    def export_to_csv(self, census_data):
+        # Crea una respuesta HTTP con el tipo de contenido adecuado para un archivo CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="census.csv"'
+
+        # Crea un escritor CSV y escribe los encabezados
+        writer = csv.writer(response)
+        writer.writerow(['Voting ID', 'Voter ID'])
+
+        # Escribe los datos del censo en el archivo CSV
+        for census in census_data:
+            writer.writerow([census.voting_id, census.voter_id])
+
+        return response
