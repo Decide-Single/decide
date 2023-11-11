@@ -1,8 +1,11 @@
+import csv
 from django.db.utils import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import render
 from django.views import View
 from rest_framework import generics
 from rest_framework.response import Response
+from django.http import JsonResponse
 from rest_framework.status import (
         HTTP_201_CREATED as ST_201,
         HTTP_204_NO_CONTENT as ST_204,
@@ -54,6 +57,32 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
             return Response('Invalid voter', status=ST_401)
         return Response('Valid voter')
 
+
+class CensusImportView(View):
+
+    template_name = 'import_census.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)
+
+    def post(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            file = request.FILES.get('file')
+            if file and file.name.endswith('.csv'):
+                try:
+                    decoded_file = file.read().decode('utf-8').splitlines()
+                    reader = csv.reader(decoded_file)
+                    for index, row in enumerate(reader):
+                        voting_id, voter_id = row  # Assuming the CSV structure is: voting_id, voter_id
+                        Census.objects.create(voting_id=voting_id, voter_id=voter_id)
+                    return JsonResponse({'message': 'Census imported successfully'}, status=201)
+                except Exception as e:
+                    return JsonResponse({'error': 'Error trying to create census: {}'.format(str(e))}, status=409)
+            else:
+                return JsonResponse({'error': 'Invalid or no file provided'}, status=400)
+        else:
+            return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 class ExportCensusToCSV(View):
 
     def get(self, request):
@@ -79,3 +108,4 @@ class ExportCensusToCSV(View):
             writer.writerow([census.voting_id, census.voter_id])
 
         return response
+
