@@ -60,6 +60,12 @@ class ExportCensusToCSV(View):
         # Obtiene todos los datos del censo que deseas exportar
         census_data = Census.objects.all()
 
+        # Exporta los datos a CSV
+        response = self.export_to_csv(census_data)
+
+        return response
+
+    def export_to_csv(self, census_data):
         # Crea una respuesta HTTP con el tipo de contenido adecuado para un archivo CSV
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="census.csv"'
