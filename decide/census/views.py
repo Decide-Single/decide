@@ -60,8 +60,28 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
             return Response('Invalid voter', status=ST_401)
         return Response('Valid voter')
 
+class CensusExportView(View):
 
+    template_name='export_census.html'
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)
 
+    def post(self, request):
+        # Obtener el valor del botón presionado
+        export_format = request.POST.get('export_format')
+
+        # Definir las URL correspondientes a cada formato de exportación
+        url_mapping = {
+        'csv': 'export_census_csv/',
+        'json': 'export_census_json/',
+        'excel': 'export_census_xlsx/',
+    }
+
+        if export_format in url_mapping:
+            return HttpResponseRedirect(url_mapping[export_format])
+        else:
+            # Manejar el caso en el que no se seleccionó un formato válido
+            return render(request, 'export_census.html', {'error_message': 'Export format not valid.'})
 
 
 class CensusImportView(View):

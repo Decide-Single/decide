@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportar Datos del Censo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            max-width: 300px;
+            margin-top: 20px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Elegir formato de exportación del Censo:</h2>
+
+<form action="{% url 'export_census' %}" method="post">
+    {% csrf_token %}
+    <button type="submit" name="export_format" value="csv">Exportar a CSV</button>
+    <button type="submit" name="export_format" value="json">Exportar a JSON</button>
+    <button type="submit" name="export_format" value="xlsx">Exportar a Excel</button>
+</form>
+
+</body>
+</html>
+
