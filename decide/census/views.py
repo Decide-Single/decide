@@ -1,11 +1,16 @@
 import csv
+import json
+import openpyxl
+
 from django.db.utils import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render
 from django.views import View
+from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.response import Response
 from django.http import JsonResponse
+from django.http import HttpResponseRedirect
 from rest_framework.status import (
         HTTP_201_CREATED as ST_201,
         HTTP_204_NO_CONTENT as ST_204,
@@ -14,10 +19,7 @@ from rest_framework.status import (
         HTTP_409_CONFLICT as ST_409
 )
 
-import csv
-import json
-from django.http import HttpResponse
-
+from datetime import datetime
 from base.perms import UserIsStaff
 from .models import Census
 
@@ -57,6 +59,9 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
         except ObjectDoesNotExist:
             return Response('Invalid voter', status=ST_401)
         return Response('Valid voter')
+
+
+
 
 
 class CensusImportView(View):
@@ -143,5 +148,42 @@ class ExportCensusToJSON(View):
 
         response = HttpResponse(json_data, content_type='application/json')
         response['Content-Disposition'] = 'attachment; filename="census.json"'
+
+        return response
+
+
+class ExportCensusToXLSX(View):
+
+    def get(self, request):
+        census_data = Census.objects.all()
+        response = self.export_to_excel(census_data)
+        return response
+
+    def export_to_excel(self, census_data):
+        if not census_data:
+            # Manejar el caso en que no haya datos en el censo
+            return HttpResponse('No hay datos para exportar a Excel.', status=204)
+
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+
+        # Agrega encabezados dinámicamente basándote en los campos del modelo Census
+        headers = [field.name for field in Census._meta.get_fields()]
+        worksheet.append(headers)
+
+        # Agrega datos del censo
+        for census in census_data:
+            data_row = [getattr(census, field) for field in headers]
+            worksheet.append(data_row)
+
+        # Genera un nombre de archivo dinámico con la fecha actual
+        file_name = f"census_export_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+        workbook.save(response)
+
+        # Cierra el libro de trabajo para liberar recursos
+        workbook.close()
 
         return response
