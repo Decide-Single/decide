@@ -74,7 +74,7 @@ class CensusExportView(View):
         url_mapping = {
         'csv': 'export_census_csv/',
         'json': 'export_census_json/',
-        'excel': 'export_census_xlsx/',
+        'xlsx': 'export_census_xlsx/',
     }
 
         if export_format in url_mapping:

@@ -39,13 +39,13 @@
 </head>
 <body>
 
-<h2>Elegir formato de exportación del Censo:</h2>
+<h2>Select Census Export Format:</h2>
 
 <form action="{% url 'export_census' %}" method="post">
     {% csrf_token %}
-    <button type="submit" name="export_format" value="csv">Exportar a CSV</button>
-    <button type="submit" name="export_format" value="json">Exportar a JSON</button>
-    <button type="submit" name="export_format" value="xlsx">Exportar a Excel</button>
+    <button type="submit" name="export_format" value="csv">Export to CSV</button>
+    <button type="submit" name="export_format" value="json">Export to JSON</button>
+    <button type="submit" name="export_format" value="xlsx">Export to XLSX (Excel)</button>
 </form>
 
 </body>
