@@ -15,6 +15,7 @@ from rest_framework.status import (
 )
 
 import csv
+import json
 from django.http import HttpResponse
 
 from base.perms import UserIsStaff
@@ -109,3 +110,25 @@ class ExportCensusToCSV(View):
 
         return response
 
+class ExportCensusToJSON(View):
+
+    def get(self, request):
+        census_data = Census.objects.all()
+        response = self.export_to_json(census_data)
+        return response
+
+    def export_to_json(self, census_data):
+        # Crear una estructura de datos que se convertirá a JSON
+        export_data = []
+        for census in census_data:
+            export_data.append({
+                'voting_id': census.voting_id,
+                'voter_id': census.voter_id,
+            })
+
+        json_data = json.dumps(export_data, indent=2, default=str)
+
+        response = HttpResponse(json_data, content_type='application/json')
+        response['Content-Disposition'] = 'attachment; filename="census.json"'
+
+        return response
