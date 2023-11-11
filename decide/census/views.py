@@ -69,14 +69,27 @@ class CensusImportView(View):
     def post(self, request, *args, **kwargs):
         if request.method == 'POST':
             file = request.FILES.get('file')
-            if file and file.name.endswith('.csv'):
+            if file:
                 try:
-                    decoded_file = file.read().decode('utf-8').splitlines()
-                    reader = csv.reader(decoded_file)
-                    for index, row in enumerate(reader):
-                        voting_id, voter_id = row  # Assuming the CSV structure is: voting_id, voter_id
-                        Census.objects.create(voting_id=voting_id, voter_id=voter_id)
-                    return JsonResponse({'message': 'Census imported successfully'}, status=201)
+                    # Handle CSV file
+                    if file.content_type == 'text/csv':
+                        decoded_file = file.read().decode('utf-8').splitlines()
+                        reader = csv.reader(decoded_file)
+                        for index, row in enumerate(reader):
+                            voting_id, voter_id = row  # Assuming the CSV structure is: voting_id, voter_id
+                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
+                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+
+                    # Handle JSON file
+                    elif file.content_type == 'application/json':
+                        data = json.loads(file.read().decode('utf-8'))
+                        for item in data:
+                            voting_id, voter_id = item['voting_id'], item['voter_id']
+                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
+                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+
+                    else:
+                        return JsonResponse({'error': 'Unsupported file format'}, status=400)
                 except Exception as e:
                     return JsonResponse({'error': 'Error trying to create census: {}'.format(str(e))}, status=409)
             else:

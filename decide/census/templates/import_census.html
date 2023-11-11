@@ -8,8 +8,8 @@
 <body>
     <form id="importForm" enctype="multipart/form-data" method="post">
         {% csrf_token %}
-        <label for="fileInput">Attach a CSV file:</label>
-        <input type="file" id="fileInput" name="file" accept=".csv" required>
+        <label for="fileInput">Attach a CSV or JSON file:</label>
+        <input type="file" id="fileInput" name="file" accept=".csv, application/json" required>
         <button type="submit">Import Census</button>
     </form>
 
