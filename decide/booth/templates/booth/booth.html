@@ -8,6 +8,7 @@
     <link type="text/css" rel="stylesheet" href="{% static "booth/style.css" %}" />
 {% endblock %}
 
+
 {% block content %}
 
 <div id="app-booth">
@@ -29,6 +30,27 @@
                             Login
                         </button>
                     </li>
+                    <form class="language-form" id="languageForm" method="post" action="{% url 'set_language' %}">
+                        {% csrf_token %}
+                        <label class="language-label" for="language">Lang:</label>
+                        <select class="language-select" name="language" id="language" onchange="changeLanguage(this.value)">
+                            {% for lang_code, lang_name in LANGUAGES %}
+                                {% if lang_code == LANGUAGE_CODE %}
+                                    <option value="{{ lang_code }}" selected>{{ lang_name }}</option>
+                                {% else %}
+                                    <option value="{{ lang_code}}">{{ lang_name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
+                
+                    <script>
+                        function changeLanguage(languageCode) {
+                            const form = document.getElementById('languageForm');
+                            form.elements.language.value = languageCode;
+                            form.submit();
+                        }
+                    </script>
                 </ul>
             </div>
         </div>
@@ -71,7 +93,7 @@
                 <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
             </svg>
             <div class="ms-2">
-                ¡Debe iniciar sesión para poder acceder a la votación!
+                {% trans "You must login to join the voting!" %}
             </div>
         </div>
         <div class="container-fluid">
