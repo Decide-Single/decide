@@ -130,16 +130,17 @@ class Voting(models.Model):
         self.postproc = postp
         self.save()
 
-        def add_census_to_another_votings(self, voting_id_origin, voting_id_receiver):
-            try:   
-                census= Census.objects.filter(voting_id=voting_id_origin)
-                self.add_census(voting=voting_id_receiver, census=census)
+    def add_census_to_another_votings(self,voting_receiver):
+        try:   
+            census= Census.objects.filter(voting_id=self.id)
+            self.add_census(voting_receiver.id,census)
 
-            except Voting.DoesNotExist:
-                return HttpResponse("El objeto no existe")
-        
-        def add_census(self,voting_id,census):
-            for element in census:
+        except Voting.DoesNotExist:
+            return HttpResponse("El objeto no existe")
+    
+    def add_census(self,voting_id,census):
+        for element in census:
+            if(not Census.objects.filter(voting_id=voting_id, voter_id=element.voter_id).exists()):
                 voter=element.voter_id
                 new_census= Census.objects.create(voter_id=voter, voting_id=voting_id)
                 new_census.save()
