@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Census</title>
+</head>
+<body>
+    <form id="importForm" enctype="multipart/form-data" method="post">
+        {% csrf_token %}
+        <label for="fileInput">Attach a CSV or JSON file:</label>
+        <input type="file" id="fileInput" name="file" accept=".csv, application/json" required>
+        <button type="submit">Import Census</button>
+    </form>
+
+
+    <script>
+        document.getElementById('importForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput').files[0];
+            formData.append('file', fileInput);
+
+            fetch('/census/import/', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(data => {
+                console.log(data); // Handle the response data here
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+                if (error.response) {
+                    console.error('Response status:', error.response.status);
+                    console.error('Response message:', error.response.statusText);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

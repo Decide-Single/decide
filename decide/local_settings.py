@@ -13,6 +13,12 @@ MODULES = [
     'voting',
 ]
 
+MIDDLEWARE = [
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+]
+
 base_url = 'http://localhost:8000'
 
 APIS = {
