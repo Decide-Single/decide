@@ -42,15 +42,28 @@ class CensusCreate(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         voting_id = request.GET.get('voting_id')
-        sex = request.GET.get('sex')  # Nuevos parámetros para el filtrado
-        locality = request.GET.get('locality')  # Nuevos parámetros para el filtrado
+        sex = request.GET.get('sex')
+        locality = request.GET.get('locality')
+        vote_date = request.GET.get('vote_date')
+        has_voted = request.GET.get('has_voted')
+        vote_result = request.GET.get('vote_result')
+        vote_method = request.GET.get('vote_method')
 
-        # Filtramos según los parámetros proporcionados
         queryset = Census.objects.filter(voting_id=voting_id)
+
+        # Filtrar por campos adicionales
         if sex:
             queryset = queryset.filter(sex=sex)
         if locality:
             queryset = queryset.filter(locality=locality)
+        if vote_date:
+            queryset = queryset.filter(vote_date=vote_date)
+        if has_voted:
+            queryset = queryset.filter(has_voted=has_voted.lower() == 'true')
+        if vote_result:
+            queryset = queryset.filter(vote_result=vote_result)
+        if vote_method:
+            queryset = queryset.filter(vote_method=vote_method)
 
         voters = queryset.values_list('voter_id', flat=True)
         return Response({'voters': voters})
