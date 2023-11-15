@@ -26,6 +26,11 @@ def tally(ModelAdmin, request, queryset):
         token = request.session.get('auth-token', '')
         v.tally_votes(token)
 
+def copy_census(modeladmin, request, queryset):
+    for v1 in queryset.all():
+        for v2 in queryset.all():
+            if(v1 != v2):
+                v1.add_census_to_another_votings(v2)
 
 class QuestionOptionInline(admin.TabularInline):
     model = QuestionOption
@@ -43,7 +48,7 @@ class VotingAdmin(admin.ModelAdmin):
     list_filter = (StartedFilter,)
     search_fields = ('name', )
 
-    actions = [ start, stop, tally ]
+    actions = [ start, stop, tally , copy_census]
 
 
 admin.site.register(Voting, VotingAdmin)

@@ -97,7 +97,13 @@ class VotingUpdate(generics.RetrieveUpdateDestroyAPIView):
             else:
                 voting.tally_votes(request.auth.key)
                 msg = 'Voting tallied'
-        else:
+        elif action == 'copy_census':
+            if voting.end_date:
+                msg = 'Voting has already stopped'
+                st = status.HTTP_400_BAD_REQUEST
+            else:
+                voting.add_census_to_another_votings(request.auth.key)
+                msg = 'Census succesfully copied into one another'
             msg = 'Action not found, try with start, stop or tally'
             st = status.HTTP_400_BAD_REQUEST
         return Response(msg, status=st)
