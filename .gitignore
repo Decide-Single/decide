@@ -103,7 +103,3 @@ ENV/
 
 egcenv
 loadtest/locustfile.py
-
-#config
-
-decide/local_settings.py
