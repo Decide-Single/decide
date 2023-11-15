@@ -38,10 +38,23 @@ class CensusCreate(generics.ListCreateAPIView):
             return Response('Error try to create census', status=ST_409)
         return Response('Census created', status=ST_201)
 
+    # Ajusta las vistas para agregar funcionalidad de filtrado
+
     def list(self, request, *args, **kwargs):
         voting_id = request.GET.get('voting_id')
-        voters = Census.objects.filter(voting_id=voting_id).values_list('voter_id', flat=True)
+        sex = request.GET.get('sex')  # Nuevos parámetros para el filtrado
+        locality = request.GET.get('locality')  # Nuevos parámetros para el filtrado
+
+        # Filtramos según los parámetros proporcionados
+        queryset = Census.objects.filter(voting_id=voting_id)
+        if sex:
+            queryset = queryset.filter(sex=sex)
+        if locality:
+            queryset = queryset.filter(locality=locality)
+
+        voters = queryset.values_list('voter_id', flat=True)
         return Response({'voters': voters})
+
 
 
 class CensusDetail(generics.RetrieveDestroyAPIView):
