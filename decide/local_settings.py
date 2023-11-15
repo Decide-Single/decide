@@ -37,8 +37,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'decidedb',
-        'USER': 'decideuser
-        ',
+        'USER': 'decideuser',
         'PASSWORD': 'decidepass123',
         'HOST': 'localhost',
         'PORT': '5432',
