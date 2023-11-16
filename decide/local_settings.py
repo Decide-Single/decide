@@ -21,6 +21,7 @@ MIDDLEWARE = [
 
 base_url = 'http://localhost:8000'
 
+
 APIS = {
     'authentication': base_url,
     'base': base_url,
