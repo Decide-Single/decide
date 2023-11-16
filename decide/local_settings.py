@@ -19,7 +19,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-base_url = 'http://localhost:8001'
+base_url = 'http://localhost:8000'
 
 APIS = {
     'authentication': base_url,
