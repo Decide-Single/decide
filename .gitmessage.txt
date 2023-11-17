@@ -2,6 +2,8 @@ tipo: asunto #id
 
 cuerpo
 
+############# Reglas del contenido de los commits ################
+
 ### tipo
 # feat (nueva funcionalidad)
 # fix (corrección de bugs)
@@ -10,6 +12,7 @@ cuerpo
 # docs (actualización de documentación)
 # test (incorporación o modificación de tests)
 # conf (modificación de archivos de configuración)
+# style (modificaciones estéticas que no afectan a código funcional)
 
 ### asunto
 # Consiste en una breve descripción del problema que se ha tratado y que debe de comenzar con un verbo en participio. 
@@ -20,3 +23,4 @@ cuerpo
 
 ### Ejemplo
 # conf : Actualizado docker-compose.yml #1
+# Actualizado el docker-compose.yml 
