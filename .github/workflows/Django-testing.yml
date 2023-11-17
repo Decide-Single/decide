@@ -41,7 +41,10 @@ jobs:
 
       - name: Run database migrations
         run: |
+          cd decide
           python manage.py migrate
 
       - name: Run tests
-        run: python manage.py test
+        run: 
+          cd decide
+          python manage.py test
