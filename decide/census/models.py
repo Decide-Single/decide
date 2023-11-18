@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from store.models import Vote
 
 class Census(models.Model):
     voting_id = models.PositiveIntegerField()
@@ -15,3 +16,6 @@ class Census(models.Model):
 
     def get_total_voters(self):
         return Census.objects.filter(voting_id=self.voting_id).count()
+    
+    def has_voted(self):
+        return Vote.objects.filter(voting_id=self.voting_id, voter_id=self.voter_id).exists()

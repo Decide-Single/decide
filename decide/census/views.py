@@ -41,6 +41,7 @@ class CensusCreate(generics.ListCreateAPIView):
             else:
                 census.status = 'Activo'
 
+            census.has_voted = Vote.objects.filter(voting_id=voting_id, voter_id=voters[0]).exists()
             census.save()
 
         except IntegrityError:
@@ -52,17 +53,24 @@ class CensusCreate(generics.ListCreateAPIView):
         voting_id = request.GET.get('voting_id')
         creation_date = request.GET.get('creation_date')
 
-        status = 'Desactivado' if (timezone.now() - census.creation_date).days >= 7 else 'Activo'
-
         queryset = Census.objects.filter(voting_id=voting_id)
 
         if creation_date:
             queryset = queryset.filter(creation_date__gte=creation_date)
-        if status:
-            queryset = [census for census in queryset if census.get_status() == status]
 
-        voters = queryset.values_list('voter_id', flat=True)
-        return Response({'voters': voters, 'status': status})
+        data = []
+        for census in queryset:
+            status = 'Desactivado' if (timezone.now() - census.creation_date).days >= 7 else 'Activo'
+            has_voted = Vote.objects.filter(voting_id=voting_id, voter_id=census.voter_id).exists()
+            data.append({
+                'voter_id': census.voter_id,
+                'creation_date': census.creation_date.strftime('%d-%m-%Y %H:%M:%S'),
+                'status': status,
+                'total_voters': Census.objects.filter(voting_id=voting_id).count(),
+                'has_voted': has_voted,
+            })
+
+        return Response(data)
 
 
 
