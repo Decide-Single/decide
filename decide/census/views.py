@@ -3,7 +3,6 @@ import json
 import openpyxl
 
 from django.db.utils import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
@@ -15,14 +14,15 @@ from openpyxl import load_workbook
 from rest_framework.status import (
         HTTP_201_CREATED as ST_201,
         HTTP_204_NO_CONTENT as ST_204,
-        HTTP_400_BAD_REQUEST as ST_400,
-        HTTP_401_UNAUTHORIZED as ST_401,
         HTTP_409_CONFLICT as ST_409
 )
 
 from datetime import datetime
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from base.perms import UserIsStaff
 from .models import Census
+from store.models import Vote
 
 
 class CensusCreate(generics.ListCreateAPIView):
