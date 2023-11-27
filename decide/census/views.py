@@ -3,7 +3,6 @@ import json
 import openpyxl
 
 from django.db.utils import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
@@ -15,14 +14,15 @@ from openpyxl import load_workbook
 from rest_framework.status import (
         HTTP_201_CREATED as ST_201,
         HTTP_204_NO_CONTENT as ST_204,
-        HTTP_400_BAD_REQUEST as ST_400,
-        HTTP_401_UNAUTHORIZED as ST_401,
         HTTP_409_CONFLICT as ST_409
 )
 
 from datetime import datetime
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from base.perms import UserIsStaff
 from .models import Census
+from store.models import Vote
 
 
 class CensusCreate(generics.ListCreateAPIView):
@@ -31,43 +31,46 @@ class CensusCreate(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         voting_id = request.data.get('voting_id')
         voters = request.data.get('voters')
-        try:
-            for voter in voters:
-                census = Census(voting_id=voting_id, voter_id=voter)
-                census.save()
-        except IntegrityError:
-            return Response('Error try to create census', status=ST_409)
-        return Response('Census created', status=ST_201)
 
-    # Ajusta las vistas para agregar funcionalidad de filtrado
+        try:
+            census = Census(voting_id=voting_id, voter_id=voters[0])
+            census.save()
+
+            if (timezone.now() - census.creation_date).days >= 7:
+                census.status = 'Desactivado'
+            else:
+                census.status = 'Activo'
+
+            census.has_voted = Vote.objects.filter(voting_id=voting_id, voter_id=voters[0]).exists()
+            census.save()
+
+        except IntegrityError:
+            return Response('Error trying to create census', status=ST_409)
+
+        return Response('Census created', status=ST_201)
 
     def list(self, request, *args, **kwargs):
         voting_id = request.GET.get('voting_id')
-        sex = request.GET.get('sex')
-        locality = request.GET.get('locality')
-        vote_date = request.GET.get('vote_date')
-        has_voted = request.GET.get('has_voted')
-        vote_result = request.GET.get('vote_result')
-        vote_method = request.GET.get('vote_method')
+        creation_date = request.GET.get('creation_date')
 
         queryset = Census.objects.filter(voting_id=voting_id)
 
-        # Filtrar por campos adicionales
-        if sex:
-            queryset = queryset.filter(sex=sex)
-        if locality:
-            queryset = queryset.filter(locality=locality)
-        if vote_date:
-            queryset = queryset.filter(vote_date=vote_date)
-        if has_voted:
-            queryset = queryset.filter(has_voted=has_voted.lower() == 'true')
-        if vote_result:
-            queryset = queryset.filter(vote_result=vote_result)
-        if vote_method:
-            queryset = queryset.filter(vote_method=vote_method)
+        if creation_date:
+            queryset = queryset.filter(creation_date__gte=creation_date)
 
-        voters = queryset.values_list('voter_id', flat=True)
-        return Response({'voters': voters})
+        data = []
+        for census in queryset:
+            status = 'Desactivado' if (timezone.now() - census.creation_date).days >= 7 else 'Activo'
+            has_voted = Vote.objects.filter(voting_id=voting_id, voter_id=census.voter_id).exists()
+            data.append({
+                'voter_id': census.voter_id,
+                'creation_date': census.creation_date.strftime('%d-%m-%Y %H:%M:%S'),
+                'status': status,
+                'total_voters': Census.objects.filter(voting_id=voting_id).count(),
+                'has_voted': has_voted,
+            })
+
+        return Response(data)
 
 
 
@@ -81,11 +84,18 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
 
     def retrieve(self, request, voting_id, *args, **kwargs):
         voter = request.GET.get('voter_id')
-        try:
-            Census.objects.get(voting_id=voting_id, voter_id=voter)
-        except ObjectDoesNotExist:
-            return Response('Invalid voter', status=ST_401)
-        return Response('Valid voter')
+        census = get_object_or_404(Census, voting_id=voting_id, voter_id=voter)
+        return Response({
+            'voting_id': census.voting_id,
+            'voter_id': census.voter_id,
+            'creation_date': census.creation_date.strftime('%d-%m-%Y %H:%M:%S'),
+            'status': 'Desactivado' if (timezone.now() - census.creation_date).days >= 7 else 'Activo',
+            'total_voters': Census.objects.filter(voting_id=voting_id).count(),
+        })
+
+
+# ---------
+
 
 class CensusExportView(View):
 
