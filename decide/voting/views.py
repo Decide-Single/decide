@@ -1,7 +1,8 @@
+from django.views import View
 import django_filters.rest_framework
 from django.conf import settings
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import generics, status
 from rest_framework.response import Response
 
@@ -9,6 +10,7 @@ from .models import Question, QuestionOption, Voting
 from .serializers import SimpleVotingSerializer, VotingSerializer
 from base.perms import UserIsStaff
 from base.models import Auth
+from .forms import ReuseCensusForm
 
 
 class VotingView(generics.ListCreateAPIView):
@@ -97,13 +99,27 @@ class VotingUpdate(generics.RetrieveUpdateDestroyAPIView):
             else:
                 voting.tally_votes(request.auth.key)
                 msg = 'Voting tallied'
-        elif action == 'copy_census':
-            if voting.end_date:
-                msg = 'Voting has already stopped'
-                st = status.HTTP_400_BAD_REQUEST
-            else:
-                voting.add_census_to_another_votings(request.auth.key)
-                msg = 'Census succesfully copied into one another'
-            msg = 'Action not found, try with start, stop or tally'
-            st = status.HTTP_400_BAD_REQUEST
+
         return Response(msg, status=st)
+    
+class ReuseCensusView(View):
+    template_name = "reuse_census.html"
+    permission_classes = (UserIsStaff,)
+    
+    def get(self, request, *args, **kwargs):
+        votings= Voting.objects.all()
+        return render(request,self.template_name,{'votings':votings})
+
+    def post(self, request, *args, **kwargs):
+        votings= Voting.objects.all()
+        if request.method == 'POST':
+            form = ReuseCensusForm(request.POST)
+            print(form.errors)
+            if form.is_valid():
+                source = form.cleaned_data['voting_source']
+                reciever = form.cleaned_data['voting_receiver']
+                source.add_census_to_another_votings(reciever)
+                return redirect('http://localhost:8000/admin/voting/voting/')
+
+        return render(request, self.template_name, {'form': form, 'votings':votings})
+
