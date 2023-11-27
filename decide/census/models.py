@@ -1,26 +1,21 @@
 from django.db import models
+from django.utils import timezone
+from store.models import Vote
 
 class Census(models.Model):
-    SEX_CHOICES = [
-        ('M', 'Male'),
-        ('F', 'Female'),
-        ('O', 'Other'),
-    ]
-
-    VOTE_METHOD_CHOICES = [
-        ('IN_PERSON', 'In Person'),
-        ('MAIL_IN', 'Mail-In'),
-        ('ONLINE', 'Online'),
-    ]
-
     voting_id = models.PositiveIntegerField()
     voter_id = models.PositiveIntegerField()
-    sex = models.CharField(max_length=1, choices=SEX_CHOICES, blank=True, null=True)
-    locality = models.CharField(max_length=255, blank=True, null=True)
-    vote_date = models.DateField(blank=True, null=True)
-    has_voted = models.BooleanField(default=False)
-    vote_result = models.CharField(max_length=255, blank=True, null=True)
-    vote_method = models.CharField(max_length=10, choices=VOTE_METHOD_CHOICES, blank=True, null=True)
+    creation_date = models.DateTimeField(default=timezone.now)
+    additional_info = models.TextField(blank=True, null=True)
 
     class Meta:
         unique_together = (('voting_id', 'voter_id'),)
+
+    def get_status(self):
+        return 'Desactivado' if (timezone.now() - self.creation_date).days >= 7 else 'Activo'
+
+    def get_total_voters(self):
+        return Census.objects.filter(voting_id=self.voting_id).count()
+    
+    def has_voted(self):
+        return Vote.objects.filter(voting_id=self.voting_id, voter_id=self.voter_id).exists()
