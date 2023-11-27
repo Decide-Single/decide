@@ -11,6 +11,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from django.http import JsonResponse
 from django.http import HttpResponseRedirect
+from openpyxl import load_workbook
 from rest_framework.status import (
         HTTP_201_CREATED as ST_201,
         HTTP_204_NO_CONTENT as ST_204,
@@ -38,10 +39,36 @@ class CensusCreate(generics.ListCreateAPIView):
             return Response('Error try to create census', status=ST_409)
         return Response('Census created', status=ST_201)
 
+    # Ajusta las vistas para agregar funcionalidad de filtrado
+
     def list(self, request, *args, **kwargs):
         voting_id = request.GET.get('voting_id')
-        voters = Census.objects.filter(voting_id=voting_id).values_list('voter_id', flat=True)
+        sex = request.GET.get('sex')
+        locality = request.GET.get('locality')
+        vote_date = request.GET.get('vote_date')
+        has_voted = request.GET.get('has_voted')
+        vote_result = request.GET.get('vote_result')
+        vote_method = request.GET.get('vote_method')
+
+        queryset = Census.objects.filter(voting_id=voting_id)
+
+        # Filtrar por campos adicionales
+        if sex:
+            queryset = queryset.filter(sex=sex)
+        if locality:
+            queryset = queryset.filter(locality=locality)
+        if vote_date:
+            queryset = queryset.filter(vote_date=vote_date)
+        if has_voted:
+            queryset = queryset.filter(has_voted=has_voted.lower() == 'true')
+        if vote_result:
+            queryset = queryset.filter(vote_result=vote_result)
+        if vote_method:
+            queryset = queryset.filter(vote_method=vote_method)
+
+        voters = queryset.values_list('voter_id', flat=True)
         return Response({'voters': voters})
+
 
 
 class CensusDetail(generics.RetrieveDestroyAPIView):
@@ -96,22 +123,31 @@ class CensusImportView(View):
             file = request.FILES.get('file')
             if file:
                 try:
-                    # Handle CSV file
                     if file.content_type == 'text/csv':
                         decoded_file = file.read().decode('utf-8').splitlines()
                         reader = csv.reader(decoded_file)
                         for index, row in enumerate(reader):
-                            voting_id, voter_id = row  # Assuming the CSV structure is: voting_id, voter_id
+                            voting_id, voter_id = row
                             Census.objects.create(voting_id=voting_id, voter_id=voter_id)
                         return JsonResponse({'message': 'Census imported successfully'}, status=201)
 
-                    # Handle JSON file
                     elif file.content_type == 'application/json':
                         data = json.loads(file.read().decode('utf-8'))
                         for item in data:
                             voting_id, voter_id = item['voting_id'], item['voter_id']
                             Census.objects.create(voting_id=voting_id, voter_id=voter_id)
                         return JsonResponse({'message': 'Census imported successfully'}, status=201)
+
+                    elif file.content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                        workbook = load_workbook(file, read_only=True)
+                        sheet = workbook.active
+
+                        for row in sheet.iter_rows(min_row=2, values_only=True):
+                            voting_id, voter_id = row
+                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
+
+                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+
 
                     else:
                         return JsonResponse({'error': 'Unsupported file format'}, status=400)
