@@ -124,6 +124,34 @@ class CensusExportView(View):
 class CensusImportView(View):
 
     template_name = 'import_census.html'
+    SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+
+    def process_file(self, file, content_type):
+        if content_type == 'text/csv':
+            decoded_file = file.read().decode('utf-8').splitlines()
+            reader = csv.reader(decoded_file)
+        elif content_type == 'application/json':
+            data = json.loads(file.read().decode('utf-8'))
+            reader = (item.values() for item in data)
+        elif content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+            workbook = load_workbook(file, read_only=True)
+            sheet = workbook.active
+            reader = sheet.iter_rows(min_row=2, values_only=True)
+        else:
+            return None, JsonResponse({'error': 'Unsupported file format'}, status=400)
+
+        return reader, None
+
+    def create_census_object(self, row):
+        voting_id, voter_id, additional_info = row
+
+
+        return Census(
+            voting_id=voting_id,
+            voter_id=voter_id,
+            creation_date=datetime.now(),
+            additional_info=additional_info
+        )
 
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
@@ -132,41 +160,25 @@ class CensusImportView(View):
         if request.method == 'POST':
             file = request.FILES.get('file')
             if file:
+                content_type = file.content_type
+                reader, response = self.process_file(file, content_type)
+                if response:
+                    return response
+
                 try:
-                    if file.content_type == 'text/csv':
-                        decoded_file = file.read().decode('utf-8').splitlines()
-                        reader = csv.reader(decoded_file)
-                        for index, row in enumerate(reader):
-                            voting_id, voter_id = row
-                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
-                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+                    for row in reader:
+                        census_object = self.create_census_object(row)
+                        census_object.save()
 
-                    elif file.content_type == 'application/json':
-                        data = json.loads(file.read().decode('utf-8'))
-                        for item in data:
-                            voting_id, voter_id = item['voting_id'], item['voter_id']
-                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
-                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+                    return JsonResponse({'message': 'Census imported successfully'}, status=201)
 
-                    elif file.content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-                        workbook = load_workbook(file, read_only=True)
-                        sheet = workbook.active
-
-                        for row in sheet.iter_rows(min_row=2, values_only=True):
-                            voting_id, voter_id = row
-                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
-
-                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
-
-
-                    else:
-                        return JsonResponse({'error': 'Unsupported file format'}, status=400)
                 except Exception as e:
-                    return JsonResponse({'error': 'Error trying to create census: {}'.format(str(e))}, status=409)
-            else:
-                return JsonResponse({'error': 'Invalid or no file provided'}, status=400)
-        else:
-            return JsonResponse({'error': 'Invalid request method'}, status=405)
+                    return JsonResponse({'error': f'Error trying to create census: {str(e)}'}, status=409)
+
+            return JsonResponse({'error': 'Invalid or no file provided'}, status=400)
+
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 class ExportCensusToCSV(View):
 
