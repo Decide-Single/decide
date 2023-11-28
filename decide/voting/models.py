@@ -131,12 +131,9 @@ class Voting(models.Model):
         self.save()
 
     def add_census_to_another_votings(self,voting_receiver):
-        try:   
-            census= Census.objects.filter(voting_id=self.id)
-            self.add_census(voting_receiver.id,census)
+        census= Census.objects.filter(voting_id=self.id)
+        self.add_census(voting_receiver.id,census)
 
-        except Voting.DoesNotExist:
-            return HttpResponse("El objeto no existe")
     
     def add_census(self,voting_id,census):
         for element in census:

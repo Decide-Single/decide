@@ -1,7 +1,9 @@
+from django.http import HttpResponse
 from django.views import View
 import django_filters.rest_framework
 from django.conf import settings
 from django.utils import timezone
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -118,8 +120,15 @@ class ReuseCensusView(View):
             if form.is_valid():
                 source = form.cleaned_data['voting_source']
                 reciever = form.cleaned_data['voting_receiver']
-                source.add_census_to_another_votings(reciever)
-                return redirect('http://localhost:8000/admin/voting/voting/')
-
+                if reciever.end_date:
+                    messages.error(request, 'La votación de destino ya ha finalizado.')                
+                elif source==reciever:
+                    messages.error(request, 'La votación de origen y destino no pueden ser la misma.')
+                else:
+                    source.add_census_to_another_votings(reciever)
+                    return redirect('http://localhost:8000/admin/voting/voting/')
+            else:
+                messages.error(request, 'El formulario no es válido. Por favor, corrige los errores.')
+                
         return render(request, self.template_name, {'form': form, 'votings':votings})
 
