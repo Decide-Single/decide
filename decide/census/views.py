@@ -127,6 +127,7 @@ class CensusImportView(View):
         if content_type == 'text/csv':
             decoded_file = file.read().decode('utf-8').splitlines()
             reader = csv.reader(decoded_file)
+            next(reader, None)
         elif content_type == 'application/json':
             data = json.loads(file.read().decode('utf-8'))
             reader = (item.values() for item in data)
@@ -140,13 +141,13 @@ class CensusImportView(View):
         return reader, None
 
     def create_census_object(self, row):
-        voting_id, voter_id, additional_info = row
+        voting_id, voter_id, creation_date_str, additional_info = row
 
 
         return Census(
             voting_id=voting_id,
             voter_id=voter_id,
-            creation_date=datetime.now(),
+            creation_date=datetime.strptime(creation_date_str, "%Y-%m-%d").date() if creation_date_str else None,
             additional_info=additional_info
         )
 
