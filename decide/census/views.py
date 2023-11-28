@@ -104,10 +104,8 @@ class CensusExportView(View):
         return render(request, self.template_name)
 
     def post(self, request):
-        # Obtener el valor del botón presionado
         export_format = request.POST.get('export_format')
 
-        # Definir las URL correspondientes a cada formato de exportación
         url_mapping = {
         'csv': 'export_census_csv/',
         'json': 'export_census_json/',
@@ -117,7 +115,6 @@ class CensusExportView(View):
         if export_format in url_mapping:
             return HttpResponseRedirect(url_mapping[export_format])
         else:
-            # Manejar el caso en el que no se seleccionó un formato válido
             return render(request, 'export_census.html', {'error_message': 'Export format not valid.'})
 
 
@@ -171,26 +168,23 @@ class CensusImportView(View):
 class ExportCensusToCSV(View):
 
     def get(self, request):
-        # Obtiene todos los datos del censo que deseas exportar
+
         census_data = Census.objects.all()
 
-        # Exporta los datos a CSV
         response = self.export_to_csv(census_data)
 
         return response
 
     def export_to_csv(self, census_data):
-        # Crea una respuesta HTTP con el tipo de contenido adecuado para un archivo CSV
+
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="census.csv"'
 
-        # Crea un escritor CSV y escribe los encabezados
         writer = csv.writer(response)
-        writer.writerow(['Voting ID', 'Voter ID'])
+        writer.writerow(['Voting ID', 'Voter ID', 'Creation Date', 'Additional Info'])
 
-        # Escribe los datos del censo en el archivo CSV
         for census in census_data:
-            writer.writerow([census.voting_id, census.voter_id])
+            writer.writerow([census.voting_id, census.voter_id, census.creation_date, census.additional_info])
 
         return response
 
@@ -202,12 +196,13 @@ class ExportCensusToJSON(View):
         return response
 
     def export_to_json(self, census_data):
-        # Crear una estructura de datos que se convertirá a JSON
         export_data = []
         for census in census_data:
             export_data.append({
                 'voting_id': census.voting_id,
                 'voter_id': census.voter_id,
+                'creation_date': census.creation_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'additional_info': census.additional_info,
             })
 
         json_data = json.dumps(export_data, indent=2, default=str)
@@ -216,6 +211,7 @@ class ExportCensusToJSON(View):
         response['Content-Disposition'] = 'attachment; filename="census.json"'
 
         return response
+
 
 
 class ExportCensusToXLSX(View):
@@ -227,29 +223,24 @@ class ExportCensusToXLSX(View):
 
     def export_to_excel(self, census_data):
         if not census_data:
-            # Manejar el caso en que no haya datos en el censo
             return HttpResponse('No hay datos para exportar a Excel.', status=204)
 
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
 
-        # Agrega encabezados dinámicamente basándote en los campos del modelo Census
-        headers = [field.name for field in Census._meta.get_fields()]
+        headers = [field.name for field in Census._meta.get_fields() if field.name not in ['id', 'creation_date']]
         worksheet.append(headers)
 
-        # Agrega datos del censo
         for census in census_data:
             data_row = [getattr(census, field) for field in headers]
             worksheet.append(data_row)
 
-        # Genera un nombre de archivo dinámico con la fecha actual
         file_name = f"census_export_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{file_name}"'
-        workbook.save(response)
 
-        # Cierra el libro de trabajo para liberar recursos
+        workbook.save(response)
         workbook.close()
 
         return response
