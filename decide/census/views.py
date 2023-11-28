@@ -228,11 +228,13 @@ class ExportCensusToXLSX(View):
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
 
-        headers = [field.name for field in Census._meta.get_fields() if field.name not in ['id', 'creation_date']]
+        headers = [field.name for field in Census._meta.get_fields() if field.name != 'id']
         worksheet.append(headers)
 
         for census in census_data:
-            data_row = [getattr(census, field) for field in headers]
+            # Formatea la fecha como una cadena compatible con Excel
+            formatted_date = census.creation_date.strftime('%Y-%m-%d %H:%M:%S')
+            data_row = [getattr(census, field) if field != 'creation_date' else formatted_date for field in headers]
             worksheet.append(data_row)
 
         file_name = f"census_export_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
