@@ -147,7 +147,7 @@ class CensusImportView(View):
         return Census(
             voting_id=voting_id,
             voter_id=voter_id,
-            creation_date=datetime.now(),
+            creation_date=timezone.now(),
             additional_info=additional_info
         )
 
