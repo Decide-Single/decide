@@ -147,7 +147,7 @@ class CensusImportView(View):
         return Census(
             voting_id=voting_id,
             voter_id=voter_id,
-            creation_date=datetime.strptime(creation_date_str, "%Y-%m-%d").date() if creation_date_str else None,
+            creation_date=datetime.now(),
             additional_info=additional_info
         )
 
