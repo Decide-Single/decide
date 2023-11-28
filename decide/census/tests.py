@@ -264,11 +264,7 @@ class ExportCensusToCSVTest(BaseExportTestCase):
         for j in [2]:
             self.assertEqual(actual_data[j].split('.')[0], expected_data[j].split('.')[0])
 
-        # Verificar el resto de los datos
         self.assertEqual(actual_data[:2] + actual_data[3:], expected_data[:2] + expected_data[3:])
-
-
-
 
 
 class ExportCensusToJSONTest(BaseExportTestCase):
@@ -284,11 +280,10 @@ class ExportCensusToJSONTest(BaseExportTestCase):
 
         self.assertIsInstance(response_data, list)
 
-        # Check if the length of response_data matches the length of census_instances
         self.assertEqual(len(response_data), len(self.census_instances))
 
         for i, census_data in enumerate(response_data):
-            if i < len(self.census_instances):  # Ensure index is within bounds
+            if i < len(self.census_instances):
                 self.assert_exported_census_data_matches_instance(census_data, self.census_instances[i])
 
     def test_exported_json_to_file(self):
@@ -310,7 +305,7 @@ class ExportCensusToJSONTest(BaseExportTestCase):
             saved_data = json.load(temp_file)
 
         for i, saved_census_data in enumerate(saved_data):
-            if i < len(self.census_instances):  # Ensure index is within bounds
+            if i < len(self.census_instances):
                 self.assert_exported_census_data_matches_instance(saved_census_data, self.census_instances[i])
 
         os.remove(temp_file_path)
@@ -327,6 +322,90 @@ class ExportCensusToJSONTest(BaseExportTestCase):
         self.assertRegex(exported_data['creation_date'], r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
 
 
+class ExportCensusToXLSXTest(BaseExportTestCase):
 
+    def test_export_headers_to_excel(self):
+        url = reverse('export_census_to_xlsx')
 
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', response['Content-Type'])
+
+        self.assertIn('Content-Disposition', response)
+
+        expected_filename = f"census_export_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+        self.assertIn(f'filename="{expected_filename}"', response['Content-Disposition'])
+
+        self.assertNotEqual(response.content, b'')
+
+        if not Census.objects.exists():
+            self.assertEqual(response.status_code, 204)
+
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as temp_file:
+                temp_file.write(response.content)
+
+            workbook = openpyxl.load_workbook(temp_file.name)
+            worksheet = workbook.active
+
+            self.assertEqual(worksheet.title, 'Sheet')
+
+            expected_headers = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
+
+            for col_num, header in enumerate(expected_headers, start=1):
+                self.assertEqual(worksheet.cell(row=1, column=col_num).value, header)
+
+        finally:
+            temp_file.close()
+
+    def test_export_data_to_excel(self):
+        url = reverse('export_census_to_xlsx')
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', response['Content-Type'])
+
+        self.assertIn('Content-Disposition', response)
+
+        expected_filename = f"census_export_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+        self.assertIn(f'filename="{expected_filename}"', response['Content-Disposition'])
+
+        self.assertNotEqual(response.content, b'')
+
+        if not Census.objects.exists():
+            self.assertEqual(response.status_code, 204)
+
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as temp_file:
+                temp_file.write(response.content)
+
+            workbook = openpyxl.load_workbook(temp_file.name)
+            worksheet = workbook.active
+
+            self.assertEqual(worksheet.title, 'Sheet')
+
+            self.assert_excel_headers(worksheet)
+
+            self.assert_excel_data(worksheet)
+
+        finally:
+            temp_file.close()
+
+    def assert_excel_headers(self, worksheet):
+        expected_headers = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
+
+        for col_num, header in enumerate(expected_headers, start=1):
+            self.assertEqual(worksheet.cell(row=1, column=col_num).value, header)
+
+    def assert_excel_data(self, worksheet):
+        for row_num, census_instance in enumerate(self.census_instances, start=2):
+            self.assertEqual(worksheet.cell(row=row_num, column=1).value, census_instance.voting_id)
+            self.assertEqual(worksheet.cell(row=row_num, column=2).value, census_instance.voter_id)
+            self.assertEqual(worksheet.cell(row=row_num, column=3).value,
+                             census_instance.creation_date.strftime('%Y-%m-%d %H:%M:%S'))
+            self.assertEqual(worksheet.cell(row=row_num, column=4).value, census_instance.additional_info)
 
