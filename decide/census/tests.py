@@ -211,7 +211,7 @@ class BaseExportTestCase(TestCase):
 
 class ExportCensusToCSVTest(BaseExportTestCase):
 
-    def test_export_to_csv(self):
+    def test_export_headers_to_csv(self):
         url = reverse('export_census_to_csv')
 
         response = self.client.get(url)
@@ -223,21 +223,14 @@ class ExportCensusToCSVTest(BaseExportTestCase):
         expected_headers = ['Voting ID', 'Voter ID', 'Creation Date', 'Additional Info']
         self.assertEqual(response_lines[0].split(','), expected_headers)
 
-        for i, census in enumerate(self.census_data):
-            if i + 1 < len(response_lines):  # Check if there is a corresponding line in the response
-                expected_data = [
-                    str(census['voting_id']),
-                    str(census['voter_id']),
-                    census['creation_date'].strftime('%Y-%m-%d %H:%M:%S'),
-                    census['additional_info']
-                ]
-                actual_data = response_lines[i + 1].split(',')
+    def test_export_data_to_csv(self):
+        url = reverse('export_census_to_csv')
 
-                for j in [2]:
-                    self.assertEqual(actual_data[j].split('.')[0], expected_data[j].split('.')[0])
+        response = self.client.get(url)
 
-                # Verificar el resto de los datos
-                self.assertEqual(actual_data[:2] + actual_data[3:], expected_data[:2] + expected_data[3:])
+        self.assertEqual(response.status_code, 200)
+
+        response_lines = response.content.decode('utf-8').splitlines()
 
         with tempfile.NamedTemporaryFile(mode='w+', suffix='.csv', delete=False) as temp_file:
             response = self.client.get(url)
@@ -249,25 +242,89 @@ class ExportCensusToCSVTest(BaseExportTestCase):
             with open(temp_file.name, 'r') as file:
                 file_content = file.read().splitlines()
 
-            expected_headers = ['Voting ID', 'Voter ID', 'Creation Date', 'Additional Info']
-            self.assertEqual(file_content[0].split(','), expected_headers)
-
             for i, census in enumerate(self.census_data):
-                if i + 1 < len(file_content):  # Check if there is a corresponding line in the file
-                    expected_data = [
-                        str(census['voting_id']),
-                        str(census['voter_id']),
-                        census['creation_date'].strftime('%Y-%m-%d %H:%M:%S'),
-                        census['additional_info']
-                    ]
-                    actual_data = file_content[i + 1].split(',')
+                if i + 1 < len(response_lines):
+                    self.assert_exported_data_matches_census(response_lines[i + 1], census)
 
-                    for j in [2]:
-                        self.assertEqual(actual_data[j].split('.')[0], expected_data[j].split('.')[0])
+                if i + 1 < len(file_content):
+                    self.assert_exported_data_matches_census(file_content[i + 1], census)
 
-                    self.assertEqual(actual_data[:2] + actual_data[3:], expected_data[:2] + expected_data[3:])
         finally:
             os.remove(temp_file.name)
+
+    def assert_exported_data_matches_census(self, actual_data, census):
+        expected_data = [
+            str(census['voting_id']),
+            str(census['voter_id']),
+            census['creation_date'].strftime('%Y-%m-%d %H:%M:%S'),
+            census['additional_info']
+        ]
+        actual_data = actual_data.split(',')
+
+        for j in [2]:
+            self.assertEqual(actual_data[j].split('.')[0], expected_data[j].split('.')[0])
+
+        # Verificar el resto de los datos
+        self.assertEqual(actual_data[:2] + actual_data[3:], expected_data[:2] + expected_data[3:])
+
+
+
+
+
+class ExportCensusToJSONTest(BaseExportTestCase):
+
+    def test_export_list_to_json(self):
+        url = reverse('export_census_to_json')
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content.decode('utf-8'))
+
+        self.assertIsInstance(response_data, list)
+
+        # Check if the length of response_data matches the length of census_instances
+        self.assertEqual(len(response_data), len(self.census_instances))
+
+        for i, census_data in enumerate(response_data):
+            if i < len(self.census_instances):  # Ensure index is within bounds
+                self.assert_exported_census_data_matches_instance(census_data, self.census_instances[i])
+
+    def test_exported_json_to_file(self):
+        url = reverse('export_census_to_json')
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content.decode('utf-8'))
+
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False, mode='w+b') as temp_file:
+            temp_file.write(json.dumps(response_data, indent=2, default=str).encode('utf-8'))
+            temp_file_path = temp_file.name
+
+        self.assertTrue(os.path.exists(temp_file_path))
+
+        with open(temp_file_path, 'r', encoding='utf-8') as temp_file:
+            saved_data = json.load(temp_file)
+
+        for i, saved_census_data in enumerate(saved_data):
+            if i < len(self.census_instances):  # Ensure index is within bounds
+                self.assert_exported_census_data_matches_instance(saved_census_data, self.census_instances[i])
+
+        os.remove(temp_file_path)
+
+    def assert_exported_census_data_matches_instance(self, exported_data, census_instance):
+        self.assertEqual(exported_data['voting_id'], census_instance.voting_id)
+        self.assertEqual(exported_data['voter_id'], census_instance.voter_id)
+        self.assertEqual(exported_data['creation_date'], census_instance.creation_date.strftime('%Y-%m-%d %H:%M:%S'))
+        self.assertEqual(exported_data['additional_info'], census_instance.additional_info)
+
+        expected_keys = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
+        self.assertCountEqual(exported_data.keys(), expected_keys)
+
+        self.assertRegex(exported_data['creation_date'], r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
 
 
 
