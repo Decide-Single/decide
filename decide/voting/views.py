@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from django.views import View
 import django_filters.rest_framework
 from django.conf import settings
@@ -103,11 +102,11 @@ class VotingUpdate(generics.RetrieveUpdateDestroyAPIView):
                 msg = 'Voting tallied'
 
         return Response(msg, status=st)
-    
+
+   
 class ReuseCensusView(View):
     template_name = "reuse_census.html"
-    permission_classes = (UserIsStaff,)
-    
+
     def get(self, request, *args, **kwargs):
         votings= Voting.objects.all()
         return render(request,self.template_name,{'votings':votings})
