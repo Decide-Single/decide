@@ -11,9 +11,77 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 from .models import Census
+from store.models import Vote
 from base import mods
 from base.tests import BaseTestCase
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone
+
+
+
+class CensusFilterTestCase(BaseTestCase):
+    
+    def setUp(self):
+        super().setUp()
+
+        current_date = timezone.now()
+
+        time_deltas = [timezone.timedelta(weeks=i) for i in range(4)]
+
+        self.censuses = [
+            Census(voting_id=1, voter_id=1, additional_info="Prueba 1", creation_date=current_date - time_deltas[0]),
+            Census(voting_id=1, voter_id=2, creation_date=current_date - time_deltas[1]),
+            Census(voting_id=1, voter_id=3, creation_date=current_date - time_deltas[2]),
+            Census(voting_id=1, voter_id=4, creation_date=current_date - time_deltas[3]),
+        ]
+
+        for census in self.censuses:
+            census.save()
+
+        self.votes = [
+            Vote(voter_id=1, voting_id=1, a="Valor_a_1", b="Valor_b_1"),
+        ]
+
+        for vote in self.votes:
+            vote.save()
+            
+    def tearDown(self):
+        super().tearDown()
+        self.census = None
+
+    def test_list_census(self):
+        self.login()
+        self.assertEqual(Census.objects.count(), 4)
+
+    def test_filter_census_desactivate(self):
+        self.login()
+        all_census_objects = Census.objects.all()
+        filtered_census = [census for census in all_census_objects if census.get_status() == 'Desactivado']
+        self.assertEqual(len(filtered_census), 3)
+
+    def test_filter_census_activate(self):
+        self.login()
+        all_census_objects = Census.objects.all()
+        filtered_census = [census for census in all_census_objects if census.get_status() == 'Activo']
+        self.assertEqual(len(filtered_census), 1)
+
+    def test_filter_census_total_voters(self):
+        self.login()
+        all_census_objects = Census.objects.all()
+        filtered_census = [census for census in all_census_objects if census.get_total_voters() == 4]
+        self.assertEqual(len(filtered_census), 4)
+
+    def test_filter_census_has_not_voted(self):
+        self.login()
+        all_census_objects = Census.objects.all()
+        filtered_census = [census for census in all_census_objects if not census.has_voted()]
+        self.assertEqual(len(filtered_census), 3)
+
+    def test_filter_census_has_voted(self):
+        self.login()
+        all_census_objects = Census.objects.all()
+        filtered_census = [census for census in all_census_objects if census.has_voted()]
+        self.assertEqual(len(filtered_census), 1)
 
 
 class CensusTestCase(BaseTestCase):
