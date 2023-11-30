@@ -2,7 +2,6 @@ from django.db import models
 from django.db.models import JSONField
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponse
 from census.models import Census
 from base import mods
 from base.models import Auth, Key
@@ -131,12 +130,9 @@ class Voting(models.Model):
         self.save()
 
     def add_census_to_another_votings(self,voting_receiver):
-        try:   
-            census= Census.objects.filter(voting_id=self.id)
-            self.add_census(voting_receiver.id,census)
+        census= Census.objects.filter(voting_id=self.id)
+        self.add_census(voting_receiver.id,census)
 
-        except Voting.DoesNotExist:
-            return HttpResponse("El objeto no existe")
     
     def add_census(self,voting_id,census):
         for element in census:

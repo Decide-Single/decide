@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="container">
+    <h2>Copiar Censo</h2>
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="{{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      
+      <label for="id_voting_source">Votación emisora:</label>
+      <select id="id_voting_source" name="voting_source">
+        <option value="">Seleccione una Votación</option>
+        {% for voting in votings %}
+            <option value="{{ voting.id }}">{{ voting.name }}</option>
+        {% endfor %}
+      </select>
+      
+      <br>
+      
+      <label for="id_voting_receiver">Votación Receptora:</label>
+      <select id="id_voting_receiver" name="voting_receiver">
+        <option value="">Seleccione una Votación</option>
+        {% for voting in votings %}
+            <option value="{{ voting.id }}">{{ voting.name }}</option>
+        {% endfor %}
+      </select>
+      
+      <br>
+
+      <button type="submit" class="btn btn-primary">Copiar Censo</button>
+    </form>
+  </div>
+{% endblock %}
+
+
+
