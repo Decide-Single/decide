@@ -127,6 +127,5 @@ class ReuseCensusView(View):
                     return redirect('http://localhost:8000/admin/voting/voting/')
             else:
                 messages.error(request, 'El formulario no es válido. Por favor, corrige los errores.')
-                
         return render(request, self.template_name, {'form': form, 'votings':votings})
 
