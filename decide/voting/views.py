@@ -103,7 +103,6 @@ class VotingUpdate(generics.RetrieveUpdateDestroyAPIView):
 
         return Response(msg, status=st)
 
-   
 class ReuseCensusView(View):
     template_name = "reuse_census.html"
 
