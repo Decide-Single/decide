@@ -119,7 +119,7 @@ class ReuseCensusView(View):
                 source = form.cleaned_data['voting_source']
                 reciever = form.cleaned_data['voting_receiver']
                 if reciever.end_date:
-                    messages.error(request, 'La votación de destino ya ha finalizado.')                
+                    messages.error(request, 'La votación de destino ya ha finalizado.')
                 elif source==reciever:
                     messages.error(request, 'La votación de origen y destino no pueden ser la misma.')
                 else:
