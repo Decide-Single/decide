@@ -27,7 +27,7 @@
                     <li class="nav-item" v-if="signup">
                         <!-- Button trigger modal -->
                         <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#registerModal">
-                            Login
+                            {% trans Login %}
                         </button>
                     </li>
                 </ul>
@@ -72,7 +72,7 @@
                 <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
             </svg>
             <div class="ms-2">
-                You must login to join the voting!
+                {% trans You must login to join the voting! %}
             </div>
         </div>
         <div class="container-fluid">
@@ -81,14 +81,14 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="registerModalLabel">Login</h5>
+                            <h5 class="modal-title" id="registerModalLabel">{% trans Login %}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <!-- Register -->
                             <form @submit="onSubmitLogin" v-if="signup">
                                 <div class="form-group mt-2">
-                                    <label for="username">Username</label>:
+                                    <label for="username">{% trans Username %}</label>:
                                     <input
                                         class="ml-2 form-control"
                                         id="username"
@@ -98,7 +98,7 @@
                                         required />
                                 </div>
                                 <div class="form-group mt-1">
-                                    <label for="password">Password</label>:
+                                    <label for="password">{% trans Password %}</label>:
                                     <input
                                         class = "form-control"
                                         id="password"
@@ -107,7 +107,7 @@
                                         v-model="form.password"
                                         required />
                                 </div>
-                                <button class="btn btn-primary mt-3" type="submit" data-bs-dismiss="modal">Login</button>
+                                <button class="btn btn-primary mt-3" type="submit" data-bs-dismiss="modal">{% trans Login %}</button>
                             </form>
                         </div>
                     </div>
@@ -129,7 +129,7 @@
                 </div>
             </form>
             <button class="btn btn-primary mt-3" v-on:click="decideSend">
-                Vote
+                {% trans Vote %}
             </button>
         </div>
 

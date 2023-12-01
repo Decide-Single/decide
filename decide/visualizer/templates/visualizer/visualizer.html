@@ -20,17 +20,17 @@
         <div class="voting container">
             <h1>[[ voting.id ]] - [[ voting.name ]]</h1>
 
-            <h2 v-if="!voting.start_date">Voting no started</h2>
-            <h2 v-else-if="!voting.end_date">Voting in progress</h2>
+            <h2 v-if="!voting.start_date">{% trans Voting no started %}</h2>
+            <h2 v-else-if="!voting.end_date">{% trans Voting in progress %}</h2>
             <div v-else>
-                <h2 class="heading">Results</h2>
+                <h2 class="heading">{% trans Results %}</h2>
 
                 <table class="table table-bordered table-striped">
                     <thead>
                         <tr>
-                            <th>Option</th>
-                            <th>Points</th>
-                            <th>Votes</th>
+                            <th>{% trans Option %}</th>
+                            <th>{% trans Points %}</th>
+                            <th>{% trans Votes %}</th>
                         </tr>
                     </thead>
                     <tbody>
