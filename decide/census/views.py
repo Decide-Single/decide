@@ -250,7 +250,6 @@ class ExportCensusToXLSX(View):
         worksheet.append(headers)
 
         for census in census_data:
-            # Formatea la fecha como una cadena compatible con Excel
             formatted_date = census.creation_date.strftime('%Y-%m-%d %H:%M:%S')
             data_row = [getattr(census, field) if field != 'creation_date' else formatted_date for field in headers]
             worksheet.append(data_row)
@@ -264,3 +263,5 @@ class ExportCensusToXLSX(View):
         workbook.close()
 
         return response
+
+
