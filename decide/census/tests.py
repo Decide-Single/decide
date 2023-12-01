@@ -12,7 +12,6 @@ from selenium.webdriver.common.keys import Keys
 
 from .models import Census
 from store.models import Vote
-from base import mods
 from base.tests import BaseTestCase
 from datetime import datetime
 from django.utils import timezone
