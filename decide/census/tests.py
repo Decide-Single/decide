@@ -11,6 +11,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.db import transaction
 from django.utils import timezone
 from io import BytesIO
 from openpyxl import Workbook
@@ -186,7 +187,7 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(census_objects[1].voter_id, 2)
         self.assertEqual(census_objects[1].additional_info, 'Info2')
 
-    def test_import_csv(self):
+    def test_import_csv_success(self):
         csv_file = SimpleUploadedFile("test.csv", b"voting_id,voter_id,creation_date,additional_info\n1,1,22023-11-28 11:47:12.015914+00:00,Info1\n2,2,2023-11-28 11:47:12.015914+00:00,Info2", content_type="text/csv")
         url = reverse('import_census')
         response = self.client.post(url, {'file': csv_file}, format='multipart')
@@ -195,7 +196,7 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(Census.objects.count(), 2)
         self._assert_census_data(Census.objects.all())
 
-    def test_import_json(self):
+    def test_import_json_success(self):
         json_data = [{'voting_id': 1, 'voter_id': 1, 'creation_date': '2023-11-28 11:47:12.015914+00:00', 'additional_info': 'Info1'},
                      {'voting_id': 2, 'voter_id': 2, 'creation_date': '2023-11-28 11:47:12.015914+00:00', 'additional_info': 'Info2'}]
         json_file = SimpleUploadedFile("test.json", json.dumps(json_data).encode(), content_type="application/json")
@@ -205,7 +206,7 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(Census.objects.count(), 2)
         self._assert_census_data(Census.objects.all())
 
-    def test_import_excel(self):
+    def test_import_excel_success(self):
         workbook = Workbook()
         sheet = workbook.active
         sheet.append(['voting_id', 'voter_id', 'creation_date', 'additional_info'])
@@ -221,10 +222,82 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(Census.objects.count(), 2)
         self._assert_census_data(Census.objects.all())
 
+    def test_import_csv_failure(self):
+        csv_file = SimpleUploadedFile("test_failure.csv",
+                                      b"voting_id,voter_id,creation_date,additional_info\n1,1,2023-11-28 11:47:12.015914+00:00",
+                                      content_type="text/csv")
+        url = reverse('import_census')
+        response = self.client.post(url, {'file': csv_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Census.objects.count(), 0)
+
+    def test_import_json_failure(self):
+        json_data = [{'voting_id': 1, 'voter_id': 1, 'creation_date': '2023-11-28 11:47:12.015914+00:00'}]
+        json_file = SimpleUploadedFile("test_failure.json", json.dumps(json_data).encode(),
+                                       content_type="application/json")
+        response = self.client.post(reverse('import_census'), {'file': json_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Census.objects.count(), 0)
+
+    def test_import_excel_failure(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append(['voting_id', 'voter_id', 'creation_date', 'additional_info'])
+        sheet.append([1, 1, '2023-11-28 11:47:12.015914+00:00'])
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        excel_file = SimpleUploadedFile("test_failure.xlsx", excel_buffer.read(),
+                                        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Census.objects.count(), 0)
+
+    def test_import_csv_duplicate_data(self):
+        csv_file = SimpleUploadedFile("test_duplicate.csv",
+                                      b"voting_id,voter_id,creation_date,additional_info\n1,1,2023-11-28 11:47:12.015914+00:00,Info1\n1,1,2023-11-28 11:47:12.015914+00:00,Info1",
+                                      content_type="text/csv")
+        url = reverse('import_census')
+        response = self.client.post(url, {'file': csv_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Census.objects.count(), 1)
+
+    def test_import_json_duplicate_data(self):
+        json_data = [{'voting_id': 1, 'voter_id': 1, 'creation_date': '2023-11-28 11:47:12.015914+00:00',
+                      'additional_info': 'Info1'},
+                     {'voting_id': 1, 'voter_id': 1, 'creation_date': '2023-11-28 11:47:12.015914+00:00',
+                      'additional_info': 'Info1'}]
+        json_file = SimpleUploadedFile("test_duplicate.json", json.dumps(json_data).encode(),
+                                       content_type="application/json")
+        response = self.client.post(reverse('import_census'), {'file': json_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Census.objects.count(), 1)
+
+    def test_import_excel_duplicate_data(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append(['voting_id', 'voter_id', 'creation_date', 'additional_info'])
+        sheet.append([1, 1, '2023-11-28 11:47:12.015914+00:00', 'Info1'])
+        sheet.append([1, 1, '2023-11-28 11:47:12.015914+00:00', 'Info1'])
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        excel_file = SimpleUploadedFile("test_duplicate.xlsx", excel_buffer.read(),
+                                        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Census.objects.count(), 1)
+
     def test_invalid_file_format(self):
         invalid_file = SimpleUploadedFile("test.txt", b"Invalid file content", content_type="text/plain")
         response = self.client.post(reverse('import_census'), {'file': invalid_file}, format='multipart')
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(Census.objects.count(), 1)
         self.assertEqual(response.json(), {'error': 'Unsupported file format'})
-
