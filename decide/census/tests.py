@@ -15,9 +15,6 @@ from selenium.webdriver.common.by import By
 
 from .models import Census
 from store.models import Vote
-from base.tests import BaseTestCase
-from datetime import datetime
-from django.utils import timezone
 
 
 
