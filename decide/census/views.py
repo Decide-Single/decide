@@ -143,11 +143,16 @@ class CensusImportView(View):
     def create_census_object(self, row):
         voting_id, voter_id, creation_date_str, additional_info = row
 
+        if len(row) != 4 or any(value is None for value in row):
+            raise ValueError('Incomplete data in row')
+
+        if Census.objects.filter(voting_id=voting_id, voter_id=voter_id).exists():
+            raise ValueError('Duplicate data found')
 
         return Census(
             voting_id=voting_id,
             voter_id=voter_id,
-            creation_date=datetime.now(),
+            creation_date=timezone.now(),
             additional_info=additional_info
         )
 
