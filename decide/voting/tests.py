@@ -8,6 +8,8 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework.test import APITestCase
 
+from django.urls import reverse
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -382,10 +384,6 @@ class ReuseCensusNavigationTests(StaticLiveServerTestCase):
 
         self.base.tearDown()
 
-from django.test import TestCase
-from django.urls import reverse
-from django.contrib.auth.models import User
-from django.contrib.messages import get_messages
 
 class CopyCensusesViewTests(TestCase):
     def setUp(self):
