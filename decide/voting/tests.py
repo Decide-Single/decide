@@ -397,6 +397,8 @@ class CopyCensusesViewTests(TestCase):
             opt.save()
         self.user = User.objects.create_user(username='testuser', password='testpassword')
 
+        start_date = timezone.make_aware(datetime(2023, 1, 1, 12, 0, 0))
+        end_date = timezone.make_aware(datetime(2023, 2, 10, 12, 0, 0))
         #Voting source sample
         self.votacion1 = Voting.objects.create(name='Voting1', desc='', question=question)
         self.votacion1.save()
@@ -404,11 +406,11 @@ class CopyCensusesViewTests(TestCase):
         #Voting receiver sample
         self.votacion2 = Voting.objects.create(name='Voting2', desc='', question=question)
         self.votacion2.save()
-        self.votacion3 = Voting.objects.create(name='Voting3', desc='', question=question, start_date=datetime(2023, 1, 1, 12, 0, 0))
+        self.votacion3 = Voting.objects.create(name='Voting3', desc='', question=question, start_date=start_date)
         self.votacion3.save()
-        self.votacion4 = Voting.objects.create(name='Voting4', desc='', question=question, start_date=datetime(2023, 2, 1, 12, 0, 0), end_date=datetime(2023, 2, 10, 12, 0, 0))
+        self.votacion4 = Voting.objects.create(name='Voting4', desc='', question=question, start_date=start_date, end_date=end_date)
         self.votacion4.save()
-        self.votacion5 = Voting.objects.create(name='Voting5', desc='', question=question, start_date=datetime(2023, 2, 1, 12, 0, 0))
+        self.votacion5 = Voting.objects.create(name='Voting5', desc='', question=question, start_date=start_date)
         self.votacion5.save()
 
         #Crear 100 censos para votacion1, comprobar que el resultado en los casos positivos son esos 100
