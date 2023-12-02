@@ -18,7 +18,6 @@ from io import BytesIO
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from .models import Census
 from store.models import Vote
 
 from .models import Census
@@ -234,7 +233,8 @@ class CensusTest(StaticLiveServerTestCase):
         self.cleaner.find_element(By.ID, "id_voter_id").send_keys('64654654654654')
         self.cleaner.find_element(By.NAME, "_save").click()
 
-        self.assertTrue(self.cleaner.find_element_by_xpath('/html/body/div/div[3]/div/div[1]/div/form/div/p').text == 'Please correct the errors below.')
+        self.assertTrue(self.cleaner.find_element_by_xpath('/html/body/div/div[3]/div/div[1]/div/form/div/p').text ==
+                        'Please correct the errors below.')
         self.assertTrue(self.cleaner.current_url == self.live_server_url+"/admin/census/census/add")
 
 
@@ -255,7 +255,8 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(census_objects[1].additional_info, 'Info2')
 
     def test_import_csv_success(self):
-        csv_file = SimpleUploadedFile("test.csv", b"voting_id,voter_id,creation_date,additional_info\n1,1,22023-11-28 11:47:12.015914+00:00,Info1\n2,2,2023-11-28 11:47:12.015914+00:00,Info2", content_type="text/csv")
+        csv_file = SimpleUploadedFile("test.csv", b"voting_id,voter_id,creation_date,additional_info\n1,1,"
+            b"22023-11-28 11:47:12.015914+00:00,Info1\n2,2,2023-11-28 11:47:12.015914+00:00,Info2", content_type="text/csv")
         url = reverse('import_census')
         response = self.client.post(url, {'file': csv_file}, format='multipart')
 
@@ -282,7 +283,8 @@ class CensusImportViewTest(TestCase):
         excel_buffer = BytesIO()
         workbook.save(excel_buffer)
         excel_buffer.seek(0)
-        excel_file = SimpleUploadedFile("test.xlsx", excel_buffer.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        excel_file = SimpleUploadedFile("test.xlsx", excel_buffer.read(),
+                                        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
 
         self.assertEqual(response.status_code, 201)
@@ -325,7 +327,8 @@ class CensusImportViewTest(TestCase):
 
     def test_import_csv_duplicate_data(self):
         csv_file = SimpleUploadedFile("test_duplicate.csv",
-                                      b"voting_id,voter_id,creation_date,additional_info\n1,1,2023-11-28 11:47:12.015914+00:00,Info1\n1,1,2023-11-28 11:47:12.015914+00:00,Info1",
+                                      b"voting_id,voter_id,creation_date,additional_info\n1,1,2023-11-28 11:47:12.015914+00:00,"
+                                      b"Info1\n1,1,2023-11-28 11:47:12.015914+00:00,Info1",
                                       content_type="text/csv")
         url = reverse('import_census')
         response = self.client.post(url, {'file': csv_file}, format='multipart')
