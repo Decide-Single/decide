@@ -298,7 +298,7 @@ class CensusImportViewTest(TestCase):
         url = reverse('import_census')
         response = self.client.post(url, {'file': csv_file}, format='multipart')
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 0)
 
     def test_import_json_failure(self):
@@ -307,7 +307,7 @@ class CensusImportViewTest(TestCase):
                                        content_type="application/json")
         response = self.client.post(reverse('import_census'), {'file': json_file}, format='multipart')
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 0)
 
     def test_import_excel_failure(self):
@@ -322,7 +322,7 @@ class CensusImportViewTest(TestCase):
                                         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 0)
 
     def test_import_csv_duplicate_data(self):
@@ -333,7 +333,7 @@ class CensusImportViewTest(TestCase):
         url = reverse('import_census')
         response = self.client.post(url, {'file': csv_file}, format='multipart')
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 1)
 
     def test_import_json_duplicate_data(self):
@@ -345,7 +345,7 @@ class CensusImportViewTest(TestCase):
                                        content_type="application/json")
         response = self.client.post(reverse('import_census'), {'file': json_file}, format='multipart')
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 1)
 
     def test_import_excel_duplicate_data(self):
@@ -361,7 +361,7 @@ class CensusImportViewTest(TestCase):
                                         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
 
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 1)
 
     def test_invalid_file_format(self):
