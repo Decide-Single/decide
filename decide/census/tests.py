@@ -3,12 +3,14 @@ import os
 import tempfile
 from datetime import datetime
 from datetime import timedelta
+from urllib.parse import urlparse, urljoin
 
 import openpyxl
 from base.tests import BaseTestCase
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponseRedirect
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -608,3 +610,37 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
             self.assertEqual(worksheet.cell(row=row_num, column=3).value,
                              census_instance.creation_date.strftime('%Y-%m-%d %H:%M:%S'))
             self.assertEqual(worksheet.cell(row=row_num, column=4).value, census_instance.additional_info)
+
+
+class CensusExportViewTest(TestCase):
+    def test_get(self):
+        response = self.client.get(reverse('export_census'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'export_census.html')
+
+    def assertRedirectUrlEqual(self, response, expected_url):
+        parsed_response_url = urlparse(urljoin(response.url, '/'))
+        parsed_expected_url = urlparse(urljoin(expected_url, '/'))
+        self.assertEqual(parsed_response_url.path, parsed_expected_url.path)
+
+    def test_post_valid_format(self):
+        data = {'export_format': 'csv'}
+        response = self.client.post(reverse('export_census'), data)
+        expected_url = reverse('export_census_to_csv')
+        self.assertIsInstance(response, HttpResponseRedirect)
+        self.assertRedirectUrlEqual(response, expected_url)
+
+    def test_post_invalid_format(self):
+        data = {'export_format': 'invalid_format'}
+        response = self.client.post(reverse('export_census'), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'export_census.html')
+        self.assertIn('error_message', response.context)
+        self.assertEqual(response.context['error_message'], 'Export format not valid.')
+
+    def test_post_missing_format(self):
+        response = self.client.post(reverse('export_census'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'export_census.html')
+        self.assertIn('error_message', response.context)
+        self.assertEqual(response.context['error_message'], 'Export format not valid.')
