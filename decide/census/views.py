@@ -175,8 +175,11 @@ class CensusImportView(View):
 
                     return JsonResponse({'message': 'Census imported successfully'}, status=201)
 
+                except ValueError as ve:
+                    return JsonResponse({'error': str(ve)}, status=400)
+
                 except Exception as e:
-                    return JsonResponse({'error': f'Error trying to create census: {str(e)}'}, status=409)
+                    return JsonResponse({'error': f'Error trying to create census: {str(e)}'}, status=500)
 
             return JsonResponse({'error': 'Invalid or no file provided'}, status=400)
 
