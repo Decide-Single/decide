@@ -628,7 +628,7 @@ class CensusExportViewTest(TestCase):
         response = self.client.post(reverse('export_census'), data)
         expected_url = reverse('export_census_to_csv')
         self.assertIsInstance(response, HttpResponseRedirect)
-        self.assertRedirectUrlEqual(response, expected_url)
+        self.assert_redirect_url_equal(response, expected_url)
 
     def test_post_invalid_format(self):
         data = {'export_format': 'invalid_format'}
