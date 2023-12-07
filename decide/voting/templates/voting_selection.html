@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="container">
+  <h2>Get voting</h2>
+  {% if message %}
+   <div class="messages">
+    <div class="alert {{ message.tags }}">
+      <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+      {{ message }}
+    </div>
+  </div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Generate file</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,10 +1,15 @@
+import json
+import os
+import zipfile
+
 import django_filters.rest_framework
 from django.conf import settings
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
 from rest_framework.response import Response
 
+from .forms import VotingSelectionForm
 from .models import Question, QuestionOption, Voting
 from .serializers import SimpleVotingSerializer, VotingSerializer
 from base.perms import UserIsStaff
@@ -107,3 +112,36 @@ class VotingUpdate(generics.RetrieveUpdateDestroyAPIView):
             msg = 'Action not found, try with start, stop or tally'
             st = status.HTTP_400_BAD_REQUEST
         return Response(msg, status=st)
+
+def process_and_compress_voting(request):
+    redirect_to = request.META.get('HTTP_REFERER', '/')
+    if request.method == 'POST':
+        form = VotingSelectionForm(request.POST)
+        if form.is_valid():
+            selected_voting = form.cleaned_data['votation']
+
+            voting_data = {
+                'id': selected_voting.id,
+                'name': selected_voting.name,
+                'description': selected_voting.desc,
+                'start_date': selected_voting.start_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'end_date': selected_voting.end_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'tally': selected_voting.tally,
+            }
+
+            result_txt_path = os.path.join(settings.STATIC_ROOT, f'voting_result_{selected_voting.id}.txt')
+            with open(result_txt_path, 'w') as result_txt_file:
+                result_txt_file.write(json.dumps(voting_data))
+
+            result_zip_path = os.path.join(settings.STATIC_ROOT, f'voting_result_{selected_voting.id}.zip')
+            with zipfile.ZipFile(result_zip_path, 'w') as zipf:
+                zipf.write(result_txt_path, arcname=f'voting_result_{selected_voting.id}.txt')
+
+            os.remove(result_txt_path)
+
+            success_message = 'File generated and saved successfully!'
+            form = VotingSelectionForm()
+            return render(request, 'voting_selection.html', {'message': success_message, 'form': form})
+    else:
+        form = VotingSelectionForm()
+    return render(request, 'voting_selection.html', {'form': form})
