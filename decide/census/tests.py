@@ -618,7 +618,7 @@ class CensusExportViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'export_census.html')
 
-    def assertRedirectUrlEqual(self, response, expected_url):
+    def assert_redirect_url_equal(self, response, expected_url):
         parsed_response_url = urlparse(urljoin(response.url, '/'))
         parsed_expected_url = urlparse(urljoin(expected_url, '/'))
         self.assertEqual(parsed_response_url.path, parsed_expected_url.path)
