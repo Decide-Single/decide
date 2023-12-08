@@ -122,6 +122,8 @@ class CensusExportView(View):
             return render(request, 'export_census.html', {'error_message': 'Export format not valid.'})
 
 
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class CensusImportView(View):
 
     template_name = 'import_census.html'
