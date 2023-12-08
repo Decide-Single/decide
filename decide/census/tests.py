@@ -416,7 +416,7 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Census.objects.count(), 0)
         self.client.logout()
-        
+
 
 class BaseExportTestCase(TestCase):
     def setUp(self):
