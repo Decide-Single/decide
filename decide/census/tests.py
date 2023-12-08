@@ -10,6 +10,7 @@ from base.tests import BaseTestCase
 
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect
 from django.test import TestCase
 from django.urls import reverse
@@ -23,6 +24,7 @@ from selenium.webdriver.common.by import By
 from store.models import Vote
 
 from .models import Census
+
 
 
 class CensusFilterTestCase(BaseTestCase):
@@ -374,8 +376,15 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(Census.objects.count(), 0)
         self.assertEqual(response.json(), {'error': 'Unsupported file format'})
 
+
 class BaseExportTestCase(TestCase):
     def setUp(self):
+        self.admin_user = User.objects.create_user(
+            username='admin',
+            password='admin_password',
+            is_staff=True,
+        )
+
         self.census_data = [
             {
                 'voting_id': 1,
@@ -411,11 +420,19 @@ class BaseExportTestCase(TestCase):
 
         self.census_instances = [Census.objects.create(**data) for data in self.census_data]
 
+    def login_as_admin(self):
+        self.client.force_login(self.admin_user)
+
+    def logout(self):
+        self.client.logout()
+
+
 class ExportCensusToCSVTest(BaseExportTestCase):
 
     def test_export_headers_to_csv(self):
-        url = reverse('export_census_to_csv')
+        self.login_as_admin()
 
+        url = reverse('export_census_to_csv')
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
@@ -426,6 +443,8 @@ class ExportCensusToCSVTest(BaseExportTestCase):
         self.assertEqual(response_lines[0].split(','), expected_headers)
 
     def test_export_data_to_csv(self):
+        self.login_as_admin()
+
         url = reverse('export_census_to_csv')
 
         response = self.client.get(url)
@@ -472,6 +491,8 @@ class ExportCensusToCSVTest(BaseExportTestCase):
 class ExportCensusToJSONTest(BaseExportTestCase):
 
     def test_export_list_to_json(self):
+        self.login_as_admin()
+
         url = reverse('export_census_to_json')
 
         response = self.client.get(url)
@@ -489,6 +510,8 @@ class ExportCensusToJSONTest(BaseExportTestCase):
                 self.assert_exported_census_data_matches_instance(census_data, self.census_instances[i])
 
     def test_exported_json_to_file(self):
+        self.login_as_admin()
+
         url = reverse('export_census_to_json')
 
         response = self.client.get(url)
@@ -527,6 +550,8 @@ class ExportCensusToJSONTest(BaseExportTestCase):
 class ExportCensusToXLSXTest(BaseExportTestCase):
 
     def test_export_headers_to_excel(self):
+        self.login_as_admin()
+
         url = reverse('export_census_to_xlsx')
 
         response = self.client.get(url)
@@ -563,6 +588,8 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
             temp_file.close()
 
     def test_export_data_to_excel(self):
+        self.login_as_admin()
+
         url = reverse('export_census_to_xlsx')
 
         response = self.client.get(url)
@@ -612,25 +639,41 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
             self.assertEqual(worksheet.cell(row=row_num, column=4).value, census_instance.additional_info)
 
 
-class CensusExportViewTest(TestCase):
-    def test_get(self):
+
+class CensusExportViewTest(BaseExportTestCase):
+
+    def test_export_census_view_requires_admin_login(self):
+        response = self.client.get(reverse('export_census'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_export_census_to_csv_requires_admin_login(self):
+        response = self.client.get(reverse('export_census_to_csv'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_export_census_to_json_requires_admin_login(self):
+        response = self.client.get(reverse('export_census_to_json'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_export_census_to_xlsx_requires_admin_login(self):
+        response = self.client.get(reverse('export_census_to_xlsx'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_get_export_census_view_as_admin(self):
+        self.login_as_admin()
         response = self.client.get(reverse('export_census'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'export_census.html')
 
-    def assert_redirect_url_equal(self, response, expected_url):
-        parsed_response_url = urlparse(urljoin(response.url, '/'))
-        parsed_expected_url = urlparse(urljoin(expected_url, '/'))
-        self.assertEqual(parsed_response_url.path, parsed_expected_url.path)
-
-    def test_post_valid_format(self):
+    def test_post_valid_format_as_admin(self):
+        self.login_as_admin()
         data = {'export_format': 'csv'}
         response = self.client.post(reverse('export_census'), data)
         expected_url = reverse('export_census_to_csv')
         self.assertIsInstance(response, HttpResponseRedirect)
-        self.assert_redirect_url_equal(response, expected_url)
+        self.assertRedirects(response, expected_url)
 
-    def test_post_invalid_format(self):
+    def test_post_invalid_format_as_admin(self):
+        self.login_as_admin()
         data = {'export_format': 'invalid_format'}
         response = self.client.post(reverse('export_census'), data)
         self.assertEqual(response.status_code, 200)
@@ -638,9 +681,11 @@ class CensusExportViewTest(TestCase):
         self.assertIn('error_message', response.context)
         self.assertEqual(response.context['error_message'], 'Export format not valid.')
 
-    def test_post_missing_format(self):
+    def test_post_missing_format_as_admin(self):
+        self.login_as_admin()
         response = self.client.post(reverse('export_census'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'export_census.html')
         self.assertIn('error_message', response.context)
         self.assertEqual(response.context['error_message'], 'Export format not valid.')
+

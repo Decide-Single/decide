@@ -1,11 +1,14 @@
 import csv
 import json
 import openpyxl
+from django.contrib.auth.decorators import user_passes_test
 
 from django.db.utils import IntegrityError
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_protect
 from rest_framework import generics
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -96,7 +99,8 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
 
 # ---------
 
-
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class CensusExportView(View):
 
     template_name='export_census.html'
@@ -186,6 +190,8 @@ class CensusImportView(View):
         return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class ExportCensusToCSV(View):
 
     def get(self, request):
@@ -209,6 +215,8 @@ class ExportCensusToCSV(View):
 
         return response
 
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class ExportCensusToJSON(View):
 
     def get(self, request):
@@ -234,7 +242,8 @@ class ExportCensusToJSON(View):
         return response
 
 
-
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class ExportCensusToXLSX(View):
 
     def get(self, request):
@@ -266,5 +275,4 @@ class ExportCensusToXLSX(View):
         workbook.close()
 
         return response
-
 
