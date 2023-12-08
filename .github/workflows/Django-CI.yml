@@ -9,6 +9,10 @@ on:
     branches:
       - master
       - develop
+  workflow_call:
+    secrets:
+      CODACY_PROJECT_TOKEN:
+        required: true
 jobs:
   test:
     runs-on: ubuntu-latest
