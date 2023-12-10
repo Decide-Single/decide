@@ -1,3 +1,5 @@
+import dj_database_url
+
 ALLOWED_HOSTS = ["*"]
 
 # Modules in use, commented modules that you won't use
@@ -18,6 +20,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    
 ]
 
 base_url = 'http://localhost:8000'
@@ -36,14 +39,10 @@ APIS = {
 }
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'decidedb',
-        'USER': 'decideuser',
-        'PASSWORD': 'decidepass123',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default='postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a/decidedb_ksdl',
+        conn_max_age=600
+    )
 }
 
 # number of bits for the key, all auths should use the same number of bits
