@@ -101,5 +101,6 @@ ENV/
 
 .vagrant
 
+decide/local_settings.py
 egcenv
 loadtest/locustfile.py

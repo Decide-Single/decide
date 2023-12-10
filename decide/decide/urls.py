@@ -26,7 +26,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('doc/', schema_view),
     path('gateway/', include('gateway.urls')),
-    path('i18n/', set_language, name='set_language'),
 ]
 
 for module in settings.MODULES:
