@@ -43,15 +43,12 @@ jobs:
 
       - name: Use variables
         run: |
-          echo "Int Database : $DATABASE_INT_URL"
-          echo "Ext Database : $DATABASE_EXT_URL"
-          echo "Secret key : $SECRET_KEY"
-          echo "DEBUG: $DEBUG"
+          echo 'Utilizando variables de entorno'
         env:
-          DATABASE_INT_URL: ${{ vars.DATABASE_INT_URL }}
-          DATABASE_EXT_URL: ${{ vars.DATABASE_EXT_URL }}
-          SECRET_KEY: ${{ vars.SECRET_KEY }}
-          DEBUG: ${{ vars.DEBUG }}
+          DATABASE_INT_URL: ${{ secrets.DATABASE_INT_URL }}
+          DATABASE_EXT_URL: ${{ secrets.DATABASE_EXT_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEBUG: ${{ secrets.DEBUG }}
 
       - name: Install dependencies and config
         run: |
