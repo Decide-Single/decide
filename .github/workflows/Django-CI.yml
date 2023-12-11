@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "Loading environment variables from .env file"
           set -o allexport
-          source ../.env
+          source ../../.env
           set +o allexport
           echo "DATABASE_INT_URL='${DATABASE_INT_URL}'" >> $GITHUB_ENV
           echo "DATABASE_EXT_URL='${DATABASE_EXT_URL}'" >> $GITHUB_ENV
