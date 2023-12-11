@@ -41,13 +41,17 @@ jobs:
       - name: psycopg2 prerequisites
         run: sudo apt-get install libpq-dev
 
-      - name: Set environment variables
+      - name: Use variables
         run: |
-          echo "Setting environment variables"
-          echo "DATABASE_INT_URL='${{ env.DATABASE_INT_URL }}'" >> $GITHUB_ENV
-          echo "DATABASE_EXT_URL='${{ env.DATABASE_EXT_URL }}'" >> $GITHUB_ENV
-          echo "SECRET_KEY='${{ secrets.SECRET_KEY }}'" >> $GITHUB_ENV
-          echo "DEBUG='${{ secrets.DEBUG }}'" >> $GITHUB_ENV
+          echo "Int Database : $DATABASE_INT_URL"
+          echo "Ext Database : $DATABASE_EXT_URL"
+          echo "Secret key : $SECRET_KEY"
+          echo "DEBUG: $DEBUG"
+        env:
+          DATABASE_INT_URL: ${{ vars.DATABASE_INT_URL }}
+          DATABASE_EXT_URL: ${{ vars.DATABASE_EXT_URL }}
+          SECRET_KEY: ${{ vars.SECRET_KEY }}
+          DEBUG: ${{ vars.DEBUG }}
 
       - name: Install dependencies and config
         run: |
