@@ -40,17 +40,6 @@ jobs:
 
       - name: psycopg2 prerequisites
         run: sudo apt-get install libpq-dev
-
-      - name: Set environment variables
-        run: |
-          echo "Loading environment variables from .env file"
-          set -o allexport
-          source ../../.env
-          set +o allexport
-          echo "DATABASE_INT_URL='${DATABASE_INT_URL}'" >> $GITHUB_ENV
-          echo "DATABASE_EXT_URL='${DATABASE_EXT_URL}'" >> $GITHUB_ENV
-          echo "SECRET_KEY='${SECRET_KEY}'" >> $GITHUB_ENV
-          echo "DEBUG='${DEBUG}'" >> $GITHUB_ENV
               
       - name: Install dependencies and config
         run: |
