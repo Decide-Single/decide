@@ -69,6 +69,7 @@ class QuestionCreation(TemplateView):
         if request.user.is_staff:
             form = QuestionForm(request.POST)
             formset = QuestionOptionFormSet(request.POST, prefix='options')
+            
             if form.is_valid() and formset.is_valid():
                 question = form.save()
                 if question.question_type == 'YESNO':
