@@ -43,11 +43,15 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "DATABASE_INT_URL='${{ secrets.DATABASE_INT_URL }}'" >> $GITHUB_ENV
-          echo "DATABASE_EXT_URL='${{ secrets.DATABASE_EXT_URL }}'" >> $GITHUB_ENV
-          echo "SECRET_KEY='${{ secrets.SECRET_KEY }}'" >> $GITHUB_ENV
-          echo "DEBUG='${{ secrets.DEBUG }}'" >> $GITHUB_ENV
-        
+          echo "Loading environment variables from .env file"
+          set -o allexport
+          source ../.env
+          set +o allexport
+          echo "DATABASE_INT_URL='${DATABASE_INT_URL}'" >> $GITHUB_ENV
+          echo "DATABASE_EXT_URL='${DATABASE_EXT_URL}'" >> $GITHUB_ENV
+          echo "SECRET_KEY='${SECRET_KEY}'" >> $GITHUB_ENV
+          echo "DEBUG='${DEBUG}'" >> $GITHUB_ENV
+              
       - name: Install dependencies and config
         run: |
           python -m pip install --upgrade pip
