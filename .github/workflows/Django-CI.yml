@@ -13,6 +13,13 @@ on:
     secrets:
       CODACY_PROJECT_TOKEN:
         required: true
+
+env:
+  DATABASE_INT_URL: postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a/decidedb_ksdl
+  DATABASE_EXT_URL: postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a.oregon-postgres.render.com/decidedb_ksdl
+  SECRET_KEY: dev
+  DEBUG: True
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -41,14 +48,14 @@ jobs:
       - name: psycopg2 prerequisites
         run: sudo apt-get install libpq-dev
 
-      - name: Use variables
-        run: |
-          echo 'Utilizando variables de entorno'
-        env:
-          DATABASE_INT_URL: ${{ secrets.DATABASE_INT_URL }}
-          DATABASE_EXT_URL: ${{ secrets.DATABASE_EXT_URL }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DEBUG: ${{ secrets.DEBUG }}
+      # - name: Use variables
+      #   run: |
+      #     echo 'Utilizando variables de entorno'
+      #   env:
+      #     DATABASE_INT_URL: ${{ secrets.DATABASE_INT_URL }}
+      #     DATABASE_EXT_URL: ${{ secrets.DATABASE_EXT_URL }}
+      #     SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      #     DEBUG: ${{ secrets.DEBUG }}
 
       - name: Install dependencies and config
         run: |
