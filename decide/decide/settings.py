@@ -17,6 +17,8 @@ from decouple import config
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+CSRF_TRUSTED_ORIGINS = ['https://joaquin1.onrender.com/','https://stunning-palm-tree-q5x4v47g6jpfxpv4-8001.app.github.dev/','https://localhost:8001','https://localhost:8000']
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
