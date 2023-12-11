@@ -131,7 +131,7 @@ if not DEBUG:
         )
     }
 
-BASEURL = config('BASEURL', default='http://localhost:8001')
+BASEURL = config('BASEURL', default='http://localhost:8000')
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
