@@ -24,7 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
 
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -121,12 +121,13 @@ WSGI_APPLICATION = 'decide.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config("DATABASE_INT_URL"),
-        conn_max_age=600
-    )
-}
+if not DEBUG:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config("DATABASE_INT_URL"),
+            conn_max_age=600
+        )
+    }
 
 BASEURL = config('BASEURL', default='http://localhost:8000')
 
