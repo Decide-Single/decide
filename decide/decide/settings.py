@@ -210,3 +210,20 @@ if os.path.exists("config.jsonnet"):
 
 
 INSTALLED_APPS = INSTALLED_APPS + MODULES
+
+if not DEBUG:
+    base_url = 'http://joaquin1.onrender.com/'
+
+    APIS = {
+        'authentication': base_url,
+        'base': base_url,
+        'booth': base_url,
+        'census': base_url,
+        'mixnet': base_url,
+        'postproc': base_url,
+        'store': base_url,
+        'visualizer': base_url,
+        'voting': base_url,
+    }
+    
+    KEYBITS = 256
