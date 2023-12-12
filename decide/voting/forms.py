@@ -1,6 +1,5 @@
 from django import forms
 from .models import Voting, Question, QuestionOption
-from django.core.exceptions import ValidationError
 
 
 class ReuseCensusForm(forms.Form):
@@ -20,5 +19,6 @@ class QuestionOptionForm(forms.ModelForm):
     class Meta:
         model = QuestionOption
         fields = ['option']
+
    
 QuestionOptionFormSet = forms.modelformset_factory(QuestionOption, form=QuestionOptionForm, extra=2)    

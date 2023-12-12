@@ -13,7 +13,7 @@ from .models import Question, QuestionOption, Voting
 from .serializers import SimpleVotingSerializer, VotingSerializer, QuestionSerializer
 from base.perms import UserIsStaff
 from base.models import Auth
-from .forms import ReuseCensusForm, QuestionForm, QuestionOptionForm, QuestionOptionFormSet
+from .forms import ReuseCensusForm, QuestionForm, QuestionOptionFormSet
 
 class QuestionView(generics.ListCreateAPIView):
     queryset = Question.objects.all()
@@ -47,7 +47,7 @@ class QuestionView(generics.ListCreateAPIView):
 class QuestionList(TemplateView):
     permission_classes = [IsAdminUser]
 
-    def get(self, request):
+    def get(request):
         if request.user.is_staff:
             questions = Question.objects.all()
             return render(request, 'question_list.html', {'questions': questions})
