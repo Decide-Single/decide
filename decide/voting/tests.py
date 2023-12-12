@@ -136,6 +136,7 @@ class VotingTestCase(BaseTestCase):
             'name': 'Example',
             'desc': 'Description example',
             'question': 'I want a ',
+            'question_type': 'DEFAULT',
             'question_opt': ['cat', 'dog', 'horse']
         }
 
