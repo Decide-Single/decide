@@ -17,7 +17,7 @@ from decouple import config
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-CSRF_TRUSTED_ORIGINS = ['https://joaquin1.onrender.com/','https://stunning-palm-tree-q5x4v47g6jpfxpv4-8001.app.github.dev/','https://localhost:8001','https://localhost:8000']
+CSRF_TRUSTED_ORIGINS = ['https://joaquin1.onrender.com','https://stunning-palm-tree-q5x4v47g6jpfxpv4-8001.app.github.dev','https://localhost:8001','https://localhost:8000']
 
 
 # Quick-start development settings - unsuitable for production
@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
 
 DEBUG = config('DEBUG',cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
@@ -63,6 +63,7 @@ REST_FRAMEWORK = {
 
 AUTHENTICATION_BACKENDS = [
     'base.backends.AuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 MODULES = [
@@ -214,7 +215,7 @@ if os.path.exists("config.jsonnet"):
 INSTALLED_APPS = INSTALLED_APPS + MODULES
 
 if not DEBUG:
-    base_url = 'https://joaquin1.onrender.com/'
+    base_url = "https://joaquin1.onrender.com"
 
     APIS = {
         'authentication': base_url,
