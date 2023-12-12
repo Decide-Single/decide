@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
 
 DEBUG = config('DEBUG',cast=bool)
 
-ALLOWED_HOSTS = [".joaquin1.onrender.com","localhost","*"]
+ALLOWED_HOSTS = []
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
@@ -126,7 +126,7 @@ WSGI_APPLICATION = 'decide.wsgi.application'
 #     }
 # }
 
-if not DEBUG:
+if DEBUG:
     DATABASES = {
         'default': dj_database_url.config(
             default=config("DATABASE_INT_URL"),
@@ -188,7 +188,7 @@ ALLOWED_VERSIONS = ['v1', 'v2']
 DEFAULT_VERSION = 'v1'
 
 # Following settings only make sense on production and may break development environments.
-if not DEBUG:
+if DEBUG:
     # Tell Django to copy statics to the `staticfiles` directory
     # in your application directory on Render.
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -197,7 +197,7 @@ if not DEBUG:
     # and creating unique names for each version so they can safely be cached forever.
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-if DEBUG:
+if not DEBUG:
     try:
         from local_settings import *
     except ImportError:
@@ -214,7 +214,7 @@ if os.path.exists("config.jsonnet"):
 
 INSTALLED_APPS = INSTALLED_APPS + MODULES
 
-if not DEBUG:
+if DEBUG:
     base_url = "https://joaquin1.onrender.com"
 
     APIS = {
