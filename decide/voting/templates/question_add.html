@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">New Question</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="{{ form.desc.id_for_label }}" class="form-label">Description</label>
+            {{ form.desc }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.question_type.id_for_label }}" class="form-label">Question type</label>
+            {{ form.question_type }}
+        </div>
+        {{ formset.management_form }}
+        <label class="form-label">Options:</label>
+        <div id="form-set" class="mb-3">
+            {% for form in formset %}
+            <div class="mb-3">
+                <label for="{{ form.option.id_for_label }}" class="form-label">Option {{ forloop.counter }}</label>
+                {{ form.option }}
+            </div>
+            {% endfor %}
+        </div>
+        <button id="add-more" type="button" class="btn btn-secondary me-2">+</button>
+        <button type="submit" class="btn btn-primary">Add Question</button>
+        <a href="{% url 'question_list' %}" class="btn btn-primary">Back to Questions</a>
+    </form>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#id_question_type').change(function() {
+            if ($(this).val() == 'YESNO') {
+                $('#form-set').hide();
+            } else {
+                $('#form-set').show();
+            }
+        });
+
+        $('#add-more').click(function() {
+            var formIdx = $('#id_options-TOTAL_FORMS').val();
+            var newForm = $($('#empty-form').html().replace(/__prefix__/g, formIdx));
+            newForm.find('label').append(' ' + (parseInt(formIdx) + 1));
+            $('#form-set').append(newForm);
+            $('#id_options-TOTAL_FORMS').val(parseInt(formIdx) + 1);
+        });
+    });
+</script>
+<div id="empty-form" style="display:none">
+    <div class="mb-3">
+        <label class="form-label text-gray-700 text-sm font-bold" for="id_options-__prefix__-option">Option </label>
+        <input type="text" name="options-__prefix__-option" id="id_options-__prefix__-option" class="form-control">
+    </div>
+</div>
+{% endblock %}

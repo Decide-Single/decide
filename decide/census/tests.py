@@ -3,7 +3,6 @@ import os
 import tempfile
 from datetime import datetime
 from datetime import timedelta
-from urllib.parse import urlparse, urljoin
 
 import openpyxl
 from base.tests import BaseTestCase
