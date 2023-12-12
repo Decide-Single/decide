@@ -47,7 +47,7 @@ class QuestionView(generics.ListCreateAPIView):
 class QuestionList(TemplateView):
     permission_classes = [IsAdminUser]
 
-    def get(request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_staff:
             questions = Question.objects.all()
             return render(request, 'question_list.html', {'questions': questions})
@@ -56,8 +56,7 @@ class QuestionList(TemplateView):
 
 class QuestionCreation(TemplateView):
     permission_classes = [IsAdminUser]
-    
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_staff:
             form = QuestionForm()
             formset = QuestionOptionFormSet(prefix='options', queryset=QuestionOption.objects.none())
