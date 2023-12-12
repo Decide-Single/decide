@@ -13,6 +13,7 @@ on:
     secrets:
       CODACY_PROJECT_TOKEN:
         required: true
+
 env:
   DATABASE_INT_URL: postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a/decidedb_ksdl
   DATABASE_EXT_URL: postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a.oregon-postgres.render.com/decidedb_ksdl

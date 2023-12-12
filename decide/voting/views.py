@@ -5,15 +5,98 @@ from django.utils import timezone
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import generics, status
+from django.views.generic import TemplateView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser
 
 from .models import Question, QuestionOption, Voting
-from .serializers import SimpleVotingSerializer, VotingSerializer
+from .serializers import SimpleVotingSerializer, VotingSerializer, QuestionSerializer
 from base.perms import UserIsStaff
 from base.models import Auth
-from .forms import ReuseCensusForm
+from .forms import ReuseCensusForm, QuestionForm, QuestionOptionFormSet
 
+class QuestionView(generics.ListCreateAPIView):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend)
+    filterset_fields = ('id',)
 
+    def post(self, request, *args, **kwargs):
+        self.permission_classes = (UserIsStaff,)
+        self.check_permissions(request)
+
+        for data in ['desc', 'question_type', 'options']:
+            if not data in request.data:
+                return Response({}, status=status.HTTP_400_BAD_REQUEST)
+
+        question = Question(desc=request.data.get('desc'), question_type=request.data.get('question_type'))
+        question.save()
+
+        if question.question_type == 'YESNO':
+            yes_opt = QuestionOption(question=question, option='Yes', number=1)
+            no_opt = QuestionOption(question=question, option='No', number=2)
+            yes_opt.save()
+            no_opt.save()
+        else:
+            for idx, q_opt in enumerate(request.data.get('options')):
+                opt = QuestionOption(question=question, option=q_opt, number=idx)
+                opt.save()
+
+        return Response({}, status=status.HTTP_201_CREATED)
+
+class QuestionList(TemplateView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_staff:
+            questions = Question.objects.all()
+            return render(request, 'question_list.html', {'questions': questions})
+        else:
+            return Response({}, status=status.HTTP_403_FORBIDDEN)
+
+class QuestionCreation(TemplateView):
+    permission_classes = [IsAdminUser]
+    def get(self, request, *args, **kwargs):
+        if request.user.is_staff:
+            form = QuestionForm()
+            formset = QuestionOptionFormSet(prefix='options', queryset=QuestionOption.objects.none())
+            return render(request, 'question_add.html', {'form': form, 'formset': formset})
+        else:
+            return Response({}, status=status.HTTP_403_FORBIDDEN)
+
+    def post(self, request):
+        if request.user.is_staff:
+            form = QuestionForm(request.POST)
+            formset = QuestionOptionFormSet(request.POST, prefix='options')
+            
+            if form.is_valid() and formset.is_valid():
+                question = form.save()
+                if question.question_type == 'YESNO':
+                    yes_opt = QuestionOption(question=question, option='Yes', number=1)
+                    no_opt = QuestionOption(question=question, option='No', number=2)
+                    yes_opt.save()
+                    no_opt.save()
+                else:
+                    options = formset.save(commit=False)
+                    for option in options:
+                        option.question = question
+                        option.number = options.index(option) + 1
+                        option.save()
+                return redirect('question_list')
+        else:
+            return Response({}, status=status.HTTP_403_FORBIDDEN)
+
+class QuestionDelete(TemplateView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, question_id):
+        if request.user.is_staff:
+            question = get_object_or_404(Question, pk=question_id)
+            question.delete()
+            return redirect('question_list')
+        else:
+            return Response({}, status=status.HTTP_403_FORBIDDEN)
+        
 class VotingView(generics.ListCreateAPIView):
     queryset = Voting.objects.all()
     serializer_class = VotingSerializer
@@ -34,11 +117,11 @@ class VotingView(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         self.permission_classes = (UserIsStaff,)
         self.check_permissions(request)
-        for data in ['name', 'desc', 'question', 'question_opt']:
+        for data in ['name', 'desc', 'question', 'question_type', 'question_opt']:
             if not data in request.data:
                 return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
-        question = Question(desc=request.data.get('question'))
+        question = Question(desc=request.data.get('question'), question_type=request.data.get('question_type'))
         question.save()
         for idx, q_opt in enumerate(request.data.get('question_opt')):
             opt = QuestionOption(question=question, option=q_opt, number=idx)
