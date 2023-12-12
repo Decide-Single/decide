@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Questions</h1>
+
+    {% if questions %}
+    <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Options</th>
+                <th>Manage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for question in questions %}
+                <tr>
+                    <td>{{ question.id }}</td>
+                    <td>{{ question.desc }}</td>
+                    <td>
+                        {% if question.question_type == 'YESNO' %}
+                            Yes/No
+                        {% else %}
+                            Default
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if question.options.all %}
+                            {% for option in question.options.all %}
+                            <li>{{ option }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li>No options for this question.</li>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{% url 'question_delete' question.id %}">
+                            {% csrf_token %}
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'question_add' %}" class="btn btn-primary">New Question</a>
+    {% else %}
+    <h2>There's no questions. <a href="{% url 'question_add' %}">Create the first one!</a></h2>
+    {% endif %} 
+</div>
+{% endblock %}
