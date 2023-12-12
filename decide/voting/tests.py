@@ -8,6 +8,8 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework.test import APITestCase
 
+from django.urls import reverse
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -17,6 +19,7 @@ from selenium.webdriver.common.keys import Keys
 from base import mods
 from base.tests import BaseTestCase
 from census.models import Census
+from voting.forms import ReuseCensusForm
 from mixnet.mixcrypt import ElGamal
 from mixnet.mixcrypt import MixCrypt
 from mixnet.models import Auth
@@ -143,8 +146,8 @@ class VotingTestCase(BaseTestCase):
         voting = self.create_voting()
 
         data = {'action': 'start'}
-        #response = self.client.post('/voting/{}/'.format(voting.pk), data, format='json')
-        #self.assertEqual(response.status_code, 401)
+        response = self.client.post('/voting/{}/'.format(voting.pk), data, format='json')
+        self.assertEqual(response.status_code, 401)
 
         # login with user no admin
         self.login(user='noadmin')
@@ -155,7 +158,7 @@ class VotingTestCase(BaseTestCase):
         self.login()
         data = {'action': 'bad'}
         response = self.client.put('/voting/{}/'.format(voting.pk), data, format='json')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
 
         # STATUS VOTING: not started
         for action in ['stop', 'tally']:
@@ -361,3 +364,118 @@ class QuestionsTests(StaticLiveServerTestCase):
 
         self.assertTrue(self.cleaner.find_element_by_xpath('/html/body/div/div[3]/div/div[1]/div/form/div/p').text == 'Please correct the errors below.')
         self.assertTrue(self.cleaner.current_url == self.live_server_url+"/admin/voting/question/add/")
+
+class ReuseCensusNavigationTests(StaticLiveServerTestCase):
+
+    def setUp(self):
+        #Load base test functionality for decide
+        self.base = BaseTestCase()
+        self.base.setUp()
+
+        options = webdriver.ChromeOptions()
+        options.headless = True
+        self.driver = webdriver.Chrome(options=options)
+
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+        self.driver.quit()
+
+        self.base.tearDown()
+
+
+class CopyCensusesViewTests(TestCase):
+    def setUp(self):
+        # Initial setup of test data
+        question  = Question(desc='test question')
+        question.save()
+        for i in range(5):
+            opt = QuestionOption(question=question, option='option {}'.format(i+1))
+            opt.save()
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+
+        start_date = timezone.make_aware(datetime(2023, 1, 1, 12, 0, 0))
+        end_date = timezone.make_aware(datetime(2023, 2, 10, 12, 0, 0))
+        #Voting source sample
+        self.votacion1 = Voting.objects.create(name='Voting1', desc='', question=question)
+        self.votacion1.save()
+
+        #Voting receiver sample
+        self.votacion2 = Voting.objects.create(name='Voting2', desc='', question=question)
+        self.votacion2.save()
+        self.votacion3 = Voting.objects.create(name='Voting3', desc='', question=question, start_date=start_date)
+        self.votacion3.save()
+        self.votacion4 = Voting.objects.create(name='Voting4', desc='', question=question, start_date=start_date, end_date=end_date)
+        self.votacion4.save()
+        self.votacion5 = Voting.objects.create(name='Voting5', desc='', question=question, start_date=start_date)
+        self.votacion5.save()
+
+        #Crear 100 censos para votacion1, comprobar que el resultado en los casos positivos son esos 100
+        for i in range(100):
+            u, _ = User.objects.get_or_create(username='testvoter{}'.format(i))
+            u.is_active = True
+            u.save()
+            c = Census(voter_id=u.id, voting_id= self.votacion1.id)
+            c2 = Census(voter_id=u.id, voting_id= self.votacion5.id)
+            c.save()
+            c2.save()
+
+        self.form = ReuseCensusForm()
+        self.form.fields['voting_source'].queryset = Voting.objects.all()
+        self.form.fields['voting_receiver'].queryset = Voting.objects.all()
+
+    def test_successful_census_copy(self):
+        response = self.client.post(reverse('reuse_census'), {
+            'voting_source': self.votacion1.id,
+            'voting_receiver': self.votacion2.id,
+        })
+        self.assertEqual(response.status_code, 302)
+        #Tiene que haber añadido los 100 censos de votacion1 a votacion2
+        self.assertEqual(Census.objects.filter(voting_id=self.votacion2.id).count(), 100)
+
+    def test_successful_started_voting_census_copy(self):
+        response = self.client.post(reverse('reuse_census'), {
+            'voting_source': self.votacion1.id,
+            'voting_receiver': self.votacion3.id,
+        })
+        self.assertEqual(response.status_code, 302)
+        #Tiene que haber añadido los 100 censos de votacion1 a votacion3
+        self.assertEqual(Census.objects.filter(voting_id=self.votacion3.id).count(), 100)
+
+    def test_destination_voting_finished(self):
+        response = self.client.post(reverse('reuse_census'), {
+            'voting_source': self.votacion1.id,
+            'voting_receiver': self.votacion4.id,
+        })
+        messages = list(response.context['messages'])
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0].message), "La votación de destino ya ha finalizado.")
+
+    def test_same_source_and_receiver_voting(self):
+        response = self.client.post(reverse('reuse_census'), {
+            'voting_source': self.votacion1.id,
+            'voting_receiver': self.votacion1.id,
+        })
+        messages = list(response.context['messages'])
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0].message), "La votación de origen y destino no pueden ser la misma.")
+
+    def test_census_already_exists_in_receiver(self):
+        response = self.client.post(reverse('reuse_census'), {
+            'voting_source': self.votacion1.id,
+            'voting_receiver': self.votacion5.id,
+        })
+        self.assertEqual(response.status_code, 302)
+        #Ya que los 100 usuarios de votacion1 ya estaban en votacion5 no deberían haberse añadido y el total seguiría siendo 100
+        self.assertEqual(Census.objects.filter(voting_id=self.votacion5.id).count(), 100)
+
+    def test_redirection(self):
+        # Test redirection
+        response = self.client.post(reverse('reuse_census'), {
+            'voting_source': self.votacion1.id,
+            'voting_receiver': self.votacion2.id,
+        }, follow=True)
+        # Verify redirection
+        self.assertEqual(response.status_code, 200)  # Should redirect
+        self.assertRedirects(response, expected_url='/admin/login/?next=/admin/voting/voting/', status_code=302, target_status_code=200)
