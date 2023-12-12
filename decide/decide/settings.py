@@ -212,7 +212,7 @@ if os.path.exists("config.jsonnet"):
 INSTALLED_APPS = INSTALLED_APPS + MODULES
 
 if not DEBUG:
-    base_url = 'http://joaquin1.onrender.com/'
+    base_url = 'https://joaquin1.onrender.com/'
 
     APIS = {
         'authentication': base_url,
