@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import ReuseCensusView, QuestionDelete
+from .views import ReuseCensusView, QuestionDelete, QuestionList, QuestionCreation
 
 urlpatterns = [
     path('', views.VotingView.as_view(), name='voting'),
