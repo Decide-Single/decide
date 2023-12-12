@@ -28,7 +28,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
 
 DEBUG = config('DEBUG',cast=bool)
 
-ALLOWED_HOSTS = [".joaquin1.onrender.com","localhost"]
+ALLOWED_HOSTS = [".joaquin1.onrender.com","localhost","*"]
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Application definition
 
@@ -130,7 +134,7 @@ if not DEBUG:
         )
     }
 
-BASEURL = config('BASEURL', default='http://localhost:8000')
+BASEURL = config('BASEURL', default='https://joaquin1.onrender.com')
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
