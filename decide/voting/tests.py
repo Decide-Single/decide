@@ -4,15 +4,9 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.auth.middleware import AuthenticationMiddleware
-from django.http import HttpResponseNotAllowed
-from django.shortcuts import get_object_or_404
-from django.test import TestCase, RequestFactory, override_settings, Client
-from rest_framework.test import APIClient, force_authenticate
+from django.test import TestCase, RequestFactory, Client
+from rest_framework.test import force_authenticate
 from rest_framework.test import APITestCase
-from rest_framework import status
 from django.urls import reverse
 
 from selenium import webdriver
@@ -29,8 +23,8 @@ from mixnet.mixcrypt import ElGamal
 from mixnet.mixcrypt import MixCrypt
 from mixnet.models import Auth
 from voting.models import Voting, Question, QuestionOption
-from voting.views import QuestionList, QuestionCreation, QuestionDelete
-from voting.forms import QuestionForm, QuestionOptionFormSet
+from voting.views import QuestionCreation, QuestionDelete
+from voting.forms import QuestionOptionFormSet
 from datetime import datetime
 
 
