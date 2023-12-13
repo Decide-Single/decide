@@ -5,10 +5,9 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.test import TestCase
-from rest_framework.test import APIClient
+from django.test import TestCase, RequestFactory
+from rest_framework.test import force_authenticate
 from rest_framework.test import APITestCase
-
 from django.urls import reverse
 
 from selenium import webdriver
@@ -26,6 +25,7 @@ from mixnet.mixcrypt import ElGamal
 from mixnet.mixcrypt import MixCrypt
 from mixnet.models import Auth
 from voting.models import Voting, Question, QuestionOption
+from voting.views import QuestionDelete
 from datetime import datetime
 
 
@@ -468,6 +468,7 @@ class CopyCensusesViewTests(TestCase):
         self.assertEqual(response.status_code, 200)  # Should redirect
         self.assertRedirects(response, expected_url='/admin/login/?next=/admin/voting/voting/', status_code=302, target_status_code=200)
 
+
 class CopyCensusSelenium(StaticLiveServerTestCase):
     def setUp(self):
         super().setUp()
@@ -545,7 +546,7 @@ class CopyCensusSelenium(StaticLiveServerTestCase):
         dropdown2.select_by_visible_text("Voting3")
         self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
     
-        def test_cNMisma(self):
+    def test_cNMisma(self):
         self.driver.get(self.live_server_url+"/voting/reuse_census/")
         self.driver.set_window_size(1118, 689)
         self.driver.find_element(By.ID, "id_voting_source").click()
@@ -572,3 +573,91 @@ class CopyCensusSelenium(StaticLiveServerTestCase):
         dropdown2.select_by_visible_text("Voting4")
         self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
         error_message_element = self.driver.find_element(By.CLASS_NAME, "error")
+
+
+class QuestionTestCase(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        q = Question(desc="Descripcion")
+        q.save()
+
+        opt1 = QuestionOption(question=q, option="opcion 1")
+        opt1.save()
+        opt1 = QuestionOption(question=q, option="opcion 2")
+        opt1.save()
+
+        self.v = Voting(name="Votacion", question=q)
+        self.v.save()
+
+    def tearDown(self):
+        super().tearDown()
+        self.v = None
+        Voting.objects.get(name="Votacion").delete()
+
+    def testExist(self):
+        v = Voting.objects.get(name="Votacion")
+        self.assertEquals(v.question.options.all()[0].option, "opcion 1")
+
+    def test_create_question(self):
+        q = Question(desc="test question")
+        q.save()
+        self.assertEqual(q.desc, "test question")
+        self.assertEqual(q.question_type, "DEFAULT")
+        self.assertEqual(q.options.count(), 0)
+
+class QuestionDeleteTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass',
+            is_staff=True,
+        )
+        self.question = Question.objects.create(desc='Test Question', question_type='DEFAULT')
+
+    def authenticate_admin_user(self, request):
+        request.user = self.user
+        request.session = {}
+        request.user.save()
+        request.session['django.contrib.auth.backends.ModelBackend'] = self.user.id
+
+    def test_question_delete_for_admin_user(self):
+        url = reverse('question_delete', args=[self.question.pk])
+        request = self.factory.post(url)
+        self.authenticate_admin_user(request)
+
+        response = QuestionDelete.as_view()(request, question_id=self.question.pk)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('question_list'))
+        self.assertFalse(Question.objects.filter(pk=self.question.pk).exists())
+
+    def test_question_delete_for_non_admin_user(self):
+        url = reverse('question_delete', args=[self.question.pk])
+        request = self.factory.post(url)
+        non_admin_user = User.objects.create_user(
+            username='nonadminuser',
+            password='testpass',
+            is_staff=False,
+        )
+        request.user = non_admin_user
+
+        response = QuestionDelete.as_view()(request, question_id=self.question.pk)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Question.objects.filter(pk=self.question.pk).exists())
+
+    def test_question_delete_for_authenticated_user(self):
+        url = reverse('question_delete', args=[self.question.pk])
+        request = self.factory.post(url)
+        authenticated_user = User.objects.create_user(
+            username='authenticateduser',
+            password='testpass',
+            is_staff=False,
+        )
+        request.user = authenticated_user
+
+        response = QuestionDelete.as_view()(request, question_id=self.question.pk)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Question.objects.filter(pk=self.question.pk).exists())
