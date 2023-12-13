@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.test import TestCase, RequestFactory, Client
+from django.test import TestCase, RequestFactory
 from rest_framework.test import force_authenticate
 from rest_framework.test import APITestCase
 from django.urls import reverse
@@ -23,8 +23,7 @@ from mixnet.mixcrypt import ElGamal
 from mixnet.mixcrypt import MixCrypt
 from mixnet.models import Auth
 from voting.models import Voting, Question, QuestionOption
-from voting.views import QuestionCreation, QuestionDelete
-from voting.forms import QuestionOptionFormSet
+from voting.views import QuestionDelete
 from datetime import datetime
 
 
