@@ -1,5 +1,6 @@
 import random
 import itertools
+import time
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -15,6 +16,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 
 from base import mods
 from base.tests import BaseTestCase
@@ -366,29 +368,11 @@ class QuestionsTests(StaticLiveServerTestCase):
         self.assertTrue(self.cleaner.find_element_by_xpath('/html/body/div/div[3]/div/div[1]/div/form/div/p').text == 'Please correct the errors below.')
         self.assertTrue(self.cleaner.current_url == self.live_server_url+"/admin/voting/question/add/")
 
-class ReuseCensusNavigationTests(StaticLiveServerTestCase):
-
-    def setUp(self):
-        #Load base test functionality for decide
-        self.base = BaseTestCase()
-        self.base.setUp()
-
-        options = webdriver.ChromeOptions()
-        options.headless = True
-        self.driver = webdriver.Chrome(options=options)
-
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-        self.driver.quit()
-
-        self.base.tearDown()
-
-
 class CopyCensusesViewTests(TestCase):
     def setUp(self):
         # Initial setup of test data
+        self.vars = {}
+        
         question  = Question(desc='test question')
         question.save()
         for i in range(5):
@@ -425,6 +409,9 @@ class CopyCensusesViewTests(TestCase):
         self.form = ReuseCensusForm()
         self.form.fields['voting_source'].queryset = Voting.objects.all()
         self.form.fields['voting_receiver'].queryset = Voting.objects.all()
+
+    def tearDown(self):
+        super().tearDown()
 
     def test_successful_census_copy(self):
         response = self.client.post(reverse('reuse_census'), {
@@ -480,3 +467,81 @@ class CopyCensusesViewTests(TestCase):
         # Verify redirection
         self.assertEqual(response.status_code, 200)  # Should redirect
         self.assertRedirects(response, expected_url='/admin/login/?next=/admin/voting/voting/', status_code=302, target_status_code=200)
+
+class CopyCensusSelenium(StaticLiveServerTestCase):
+    def setUp(self):
+        super().setUp()
+        #Load base test functionality for decide
+        self.base = BaseTestCase()
+        options = webdriver.ChromeOptions()
+        options.headless = True
+        self.driver = webdriver.Chrome(options=options)
+        self.vars = {}
+        
+        question  = Question(desc='test question')
+        question.save()
+        for i in range(5):
+            opt = QuestionOption(question=question, option='option {}'.format(i+1))
+            opt.save()
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+
+        start_date = timezone.make_aware(datetime(2023, 1, 1, 12, 0, 0))
+        end_date = timezone.make_aware(datetime(2023, 2, 10, 12, 0, 0))
+        #Voting source sample
+        self.votacion1 = Voting.objects.create(name='Voting1', desc='', question=question)
+        self.votacion1.save()
+
+        #Voting receiver sample
+        self.votacion2 = Voting.objects.create(name='Voting2', desc='', question=question)
+        self.votacion2.save()
+        self.votacion3 = Voting.objects.create(name='Voting3', desc='', question=question, start_date=start_date)
+        self.votacion3.save()
+        self.votacion4 = Voting.objects.create(name='Voting4', desc='', question=question, start_date=start_date, end_date=end_date)
+        self.votacion4.save()
+        self.votacion5 = Voting.objects.create(name='Voting5', desc='', question=question, start_date=start_date)
+        self.votacion5.save()
+
+        #Crear 100 censos para votacion1, comprobar que el resultado en los casos positivos son esos 100
+        for i in range(100):
+            u, _ = User.objects.get_or_create(username='testvoter{}'.format(i))
+            u.is_active = True
+            u.save()
+            c = Census(voter_id=u.id, voting_id= self.votacion1.id)
+            c2 = Census(voter_id=u.id, voting_id= self.votacion5.id)
+            c.save()
+            c2.save()
+
+        self.form = ReuseCensusForm()
+        self.form.fields['voting_source'].queryset = Voting.objects.all()
+        self.form.fields['voting_receiver'].queryset = Voting.objects.all()
+
+    def tearDown(self):
+        self.driver.quit()
+        super().tearDown()
+
+    def test_cPNoempezado(self):
+        self.driver.get(self.live_server_url+"/voting/reuse_census/")
+        self.driver.set_window_size(1118, 689)
+        self.driver.find_element(By.ID, "id_voting_source").click()
+
+        dropdown1 = Select(self.driver.find_element(By.ID, "id_voting_source"))
+        dropdown1.select_by_visible_text("Voting1")
+
+        self.driver.find_element(By.ID, "id_voting_receiver").click()
+        dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
+        dropdown2.select_by_visible_text("Voting2")
+        self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
+
+
+    def test_cPEmpezada(self):
+        self.driver.get(self.live_server_url+"/voting/reuse_census/")
+        self.driver.set_window_size(1118, 689)
+        self.driver.find_element(By.ID, "id_voting_source").click()
+
+        dropdown1 = Select(self.driver.find_element(By.ID, "id_voting_source"))
+        dropdown1.select_by_visible_text("Voting1")
+
+        self.driver.find_element(By.ID, "id_voting_receiver").click()
+        dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
+        dropdown2.select_by_visible_text("Voting3")
+        self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
