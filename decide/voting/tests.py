@@ -532,7 +532,6 @@ class CopyCensusSelenium(StaticLiveServerTestCase):
         dropdown2.select_by_visible_text("Voting2")
         self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
 
-
     def test_cPEmpezada(self):
         self.driver.get(self.live_server_url+"/voting/reuse_census/")
         self.driver.set_window_size(1118, 689)
@@ -545,3 +544,31 @@ class CopyCensusSelenium(StaticLiveServerTestCase):
         dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
         dropdown2.select_by_visible_text("Voting3")
         self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
+    
+        def test_cNMisma(self):
+        self.driver.get(self.live_server_url+"/voting/reuse_census/")
+        self.driver.set_window_size(1118, 689)
+        self.driver.find_element(By.ID, "id_voting_source").click()
+
+        dropdown1 = Select(self.driver.find_element(By.ID, "id_voting_source"))
+        dropdown1.select_by_visible_text("Voting1")
+
+        self.driver.find_element(By.ID, "id_voting_receiver").click()
+        dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
+        dropdown2.select_by_visible_text("Voting1")
+        self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
+        error_message_element = self.driver.find_element(By.CLASS_NAME, "error")
+
+    def test_cNAcabada(self):
+        self.driver.get(self.live_server_url+"/voting/reuse_census/")
+        self.driver.set_window_size(1118, 689)
+        self.driver.find_element(By.ID, "id_voting_source").click()
+
+        dropdown1 = Select(self.driver.find_element(By.ID, "id_voting_source"))
+        dropdown1.select_by_visible_text("Voting1")
+
+        self.driver.find_element(By.ID, "id_voting_receiver").click()
+        dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
+        dropdown2.select_by_visible_text("Voting4")
+        self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
+        error_message_element = self.driver.find_element(By.CLASS_NAME, "error")
