@@ -1,6 +1,5 @@
 import random
 import itertools
-import time
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -558,7 +557,9 @@ class CopyCensusSelenium(StaticLiveServerTestCase):
         dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
         dropdown2.select_by_visible_text("Voting1")
         self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
-        error_message_element = self.driver.find_element(By.CLASS_NAME, "error")
+        error_message = self.driver.find_element(By.CLASS_NAME, "error").text
+        self.assertEqual(error_message,"La votación de origen y destino no pueden ser la misma.")
+
 
     def test_cNAcabada(self):
         self.driver.get(self.live_server_url+"/voting/reuse_census/")
@@ -572,7 +573,8 @@ class CopyCensusSelenium(StaticLiveServerTestCase):
         dropdown2 = Select(self.driver.find_element(By.ID, "id_voting_receiver"))
         dropdown2.select_by_visible_text("Voting4")
         self.driver.find_element(By.CSS_SELECTOR, ".btn").click()
-        error_message_element = self.driver.find_element(By.CLASS_NAME, "error")
+        error_message= self.driver.find_element(By.CLASS_NAME, "error").text
+        self.assertEqual(error_message,"La votación de destino ya ha finalizado.")
 
 
 class QuestionTestCase(BaseTestCase):
