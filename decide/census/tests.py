@@ -251,7 +251,8 @@ class CensusImportViewTest(TestCase):
         )
 
     def tearDown(self):
-        Census.objects.all().delete()
+        self.client.logout()
+        super().tearDown()
 
     def login_as_admin(self):
         self.client.force_login(self.admin_user)
