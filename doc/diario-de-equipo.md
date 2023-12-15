@@ -1,66 +1,81 @@
-# decide-update-4.1
-
-* Curso 2022/2023
-* Asignatura: Evolución y Gestión de la Configuración
-* Milestone: M3
-
-
-
-# Miembros del grupo
-
-* Alés Rodríguez, Manuel (manalerod@alum.us.es) <br>
-* Fernández Fernández, Adrián (adrferfer@alum.us.es) <br>
-* Patón Gutiérrez, Miguel (migpatgut@alum.us.es) <br>
-* Romero Caro, Manuel Antonio (manromcar2@alum.us.es) <br>
-* Toledo Mayorga, Alberto (albtolmay@alum.us.es) <br>
-* Vera Casal, Borja (borvercas@alum.us.es) <br>
+# Introducción
+El diario de equipo tiene como objetivo documentar las actividades, decisiones y eventos relevantes que ocurren durante el desarrollo del proyecto decide, para ser medio de comunicación, colaboración y referencia para los miembros del equipo y tutor del proyecto.
 
 # Resumen
+El documento cuenta con la redacción de 4 actas que se han considerado importantes por el equipo de desarrollo a incluír dentro del diario de equipo, ya que también se realizaron reuniones diarias cortas para objetivos a corto plazo y puesta en común del estado del proyecto.
 
-* Total de reuniones: 5, todas virtuales
-* Total de tiempo estimado: 35 horas aproximadamente<br>
 
-Aclarar también que hubo pequeñas reuniones presenciales casi todos los martes y jueves, después de clase de EGC, de manera informal para informar de los avances de la investigación, aclarar dudas y proponer ideas. Dichas reuniones no quedaron registradas.
+# Actas de reuniones
+## Acta de reunión 1
 
-# Acta de la Reunión 1
 
-* Miembros: Todos los integrantes del grupo.
-###  Puntos a tratar: <br>
-1. Cómo vamos probar las nuevas versiones de Django y Python
-2. Actualización de dependencias
-3. Fork del proyecto Decide
+|Estudiante  | Apellidos, Nombre | Contacto | Asistencia
+|--|--|--|--|
+| 1 | Arroyo Mantero, Ignacio |ignarrman@alum.us.es|x|
+| 2 | Barba Trejo, Fco. Javier |frabartre@alum.us.es|x|
+| 3 | Cabrera Gómez, Tadeo |tadcabgom@alum.us.es|x|
+| 4 | Oliva Alonso, Virgilio |virolialo@alum.us.es|x|
+| 5 | Solís Ortega, Jesús |jessolort@alum.us.es|x|
 
-# Acta de la Reunión 2
+**Orden del día:**  
+* Elaborar el Acta Fundacional del proyecto
+* Creación del repostiorio y organización de trabajo
+* Selección de tareas a implementar en el proyecto
 
-* Miembros: Todos los integrantes del grupo.
-### Puntos a tratar: <br>
-1. Puesta al día de cómo va la actualización de Decide
-2. Decidir la política de commits
-3. Decidir la política de ramas
-4. Decidir política de issues
+**Resultados:**  
+Se consiguió obtener un repositorio con las especificaciones pedidas por el tutor para el Milestone 1, es decir, limpio de commits y bien estructurado y accesible. También, se seleccionarion y se asigaron las tareas que se realizarían a lo largo de la ejecución del proyecto, además de elaborar un acta fundacional con la planificación del proyecto.
 
-# Acta de la Reunión 3
+## Acta de reunión 2
 
-* Miembros: Todos los integrantes del grupo.
-### Puntos a tratar: <br>
-1. Resumen de cómo va el proyecto
-2. Feedback del M2
-3. Reparto de tareas
+|Estudiante  | Apellidos, Nombre | Contacto | Asistencia
+|--|--|--|--|
+| 1 | Arroyo Mantero, Ignacio |ignarrman@alum.us.es|x|
+| 2 | Barba Trejo, Fco. Javier |frabartre@alum.us.es|x|
+| 3 | Cabrera Gómez, Tadeo |tadcabgom@alum.us.es|x|
+| 4 | Oliva Alonso, Virgilio |virolialo@alum.us.es|x|
+| 5 | Solís Ortega, Jesús |jessolort@alum.us.es|x|
 
-# Acta de la Reunión 4
+**Orden del día:**  
+* Comprobar el funcionamiento de la rama main
+* Primera release del proyecto
+* Despliegue de la aplicación en Docker
 
-* Miembros: Todos los integrantes del grupo.
-### Puntos a tratar: <br>
-1. Repasar documentación
-2. Investigar implementación de docker
-3. Repaso del README
-4. Repaso de tests
+**Resultados:**  
+Se comprobó el correcto funcionamiento de las tareas para su subida a la rama main, para su posterior defensa con el tutor al finalizar el Milestone 2. Además, se realizó su despliegue con una imagen en Docker, funcionando correctamente.
 
-# Acta de la Reunión 5
+## Acta de reunión 3
 
-* Miembros: Todos los integrantes del grupo.
-### Puntos a tratar: <br>
-1. Mejora documentación del README 
-2. Investigar implementación de docker
-3. Investigar implementación de Vagrant
-4. Realización del vídeo para el M3
+|Estudiante  | Apellidos, Nombre | Contacto | Asistencia
+|--|--|--|--|
+| 1 | Arroyo Mantero, Ignacio |ignarrman@alum.us.es|x|
+| 2 | Barba Trejo, Fco. Javier |frabartre@alum.us.es|x|
+| 3 | Cabrera Gómez, Tadeo |tadcabgom@alum.us.es|x|
+| 4 | Oliva Alonso, Virgilio |virolialo@alum.us.es|x|
+| 5 | Solís Ortega, Jesús |jessolort@alum.us.es|x|
+
+**Orden del día:**  
+* Mejora del Acta Fundacional
+* Plan de trabajo para el nuevo Milestone que se presenta
+* Propuesta de mejoras tras la defensa
+
+**Resultados:**  
+La reunión finaliza con un nuevo acta fundacional con mayor nivel de detalle y con correcciones tras ponerlo en práctica durante el Milestone 2, añadiendo nuevos estándares de código, de commits, comunicación, etc. También se habló de los errores cometidos durante el desarrollo del Milestone 2, para proponer mejoras de funcionalidad y tareas, para posteriormente comenzar a trabajar en las pruebas de estas funcionalidades añadidas.
+
+## Acta de reunión 4
+
+|Estudiante  | Apellidos, Nombre | Contacto | Asistencia
+|--|--|--|--|
+| 1 | Arroyo Mantero, Ignacio |ignarrman@alum.us.es|x|
+| 2 | Barba Trejo, Fco. Javier |frabartre@alum.us.es|x|
+| 3 | Cabrera Gómez, Tadeo |tadcabgom@alum.us.es|x|
+| 4 | Oliva Alonso, Virgilio |virolialo@alum.us.es|x|
+| 5 | Solís Ortega, Jesús |jessolort@alum.us.es|x|
+
+**Orden del día:**  
+* Revisión del proyecto
+* Despliegue de la aplicación en Render
+* Cambios en las tareas
+* Cambios en la organización del proyecto tras el abandono de un miembro del equipo
+
+**Resultados:**  
+La reunión finaliza con un nuevo planteamiento de tareas, donde se aclara qué hacer con las tareas que tenía que implementar el compañero que abadona la asignatura, concluyendo en que no se resolverían por falta de tiempo. Además, se hace un primer despliegue del proyecto a través de render, con buenos resultados.
