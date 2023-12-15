@@ -111,10 +111,11 @@ class CensusExportView(View):
         export_format = request.POST.get('export_format')
 
         url_mapping = {
-            'csv': 'export_census_csv/',
-            'json': 'export_census_json/',
-            'xlsx': 'export_census_xlsx/',
-        }
+        'csv': 'export_census_csv/',
+        'json': 'export_census_json/',
+        'xlsx': 'export_census_xlsx/',
+        'xml': 'export_census_xml/',
+    }
 
         if export_format in url_mapping:
             return HttpResponseRedirect(url_mapping[export_format])
@@ -299,5 +300,30 @@ class ExportCensusToXLSX(View):
 
         workbook.save(response)
         workbook.close()
+
+        return response
+
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
+class ExportCensusToXML(View):
+    def get(self, request):
+        census_data = Census.objects.all()
+        response = self.export_to_xml(census_data)
+        return response
+
+    def export_to_xml(self, census_data):
+        root = ET.Element("CensusData")
+
+        for census in census_data:
+            census_element = ET.SubElement(root, "Census")
+            ET.SubElement(census_element, "VotingID").text = str(census.voting_id)
+            ET.SubElement(census_element, "VoterID").text = str(census.voter_id)
+            ET.SubElement(census_element, "CreationDate").text = census.creation_date.strftime('%Y-%m-%d %H:%M:%S')
+            ET.SubElement(census_element, "AdditionalInfo").text = census.additional_info
+
+        xml_data = ET.tostring(root, encoding="utf-8")
+
+        response = HttpResponse(xml_data, content_type="application/xml")
+        response["Content-Disposition"] = 'attachment; filename="census.xml"'
 
         return response
