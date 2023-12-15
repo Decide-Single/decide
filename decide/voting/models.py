@@ -140,7 +140,7 @@ class Voting(models.Model):
         for element in census:
             if(not Census.objects.filter(voting_id=voting_id, voter_id=element.voter_id).exists()):
                 voter=element.voter_id
-                new_census= Census.objects.create(voter_id=voter, voting_id=voting_id,additional_info="Copiado")
+                new_census= Census.objects.create(voter_id=voter, voting_id=voting_id)
                 new_census.save()
 
     def __str__(self):
