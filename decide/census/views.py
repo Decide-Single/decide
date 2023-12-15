@@ -15,9 +15,9 @@ from django.http import JsonResponse
 from django.http import HttpResponseRedirect
 from openpyxl import load_workbook
 from rest_framework.status import (
-        HTTP_201_CREATED as ST_201,
-        HTTP_204_NO_CONTENT as ST_204,
-        HTTP_409_CONFLICT as ST_409
+    HTTP_201_CREATED as ST_201,
+    HTTP_204_NO_CONTENT as ST_204,
+    HTTP_409_CONFLICT as ST_409
 )
 
 from datetime import datetime
@@ -76,7 +76,6 @@ class CensusCreate(generics.ListCreateAPIView):
         return Response(data)
 
 
-
 class CensusDetail(generics.RetrieveDestroyAPIView):
 
     def destroy(self, request, voting_id, *args, **kwargs):
@@ -102,8 +101,8 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
 @method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
 @method_decorator(csrf_protect, name='dispatch')
 class CensusExportView(View):
+    template_name = 'export_census.html'
 
-    template_name='export_census.html'
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
 
@@ -111,10 +110,10 @@ class CensusExportView(View):
         export_format = request.POST.get('export_format')
 
         url_mapping = {
-        'csv': 'export_census_csv/',
-        'json': 'export_census_json/',
-        'xlsx': 'export_census_xlsx/',
-    }
+            'csv': 'export_census_csv/',
+            'json': 'export_census_json/',
+            'xlsx': 'export_census_xlsx/',
+        }
 
         if export_format in url_mapping:
             return HttpResponseRedirect(url_mapping[export_format])
@@ -125,9 +124,9 @@ class CensusExportView(View):
 @method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
 @method_decorator(csrf_protect, name='dispatch')
 class CensusImportView(View):
-
     template_name = 'import_census.html'
-    SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json',
+                               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
 
     def process_file(self, file, content_type):
         if content_type == 'text/csv':
@@ -149,7 +148,10 @@ class CensusImportView(View):
     def create_census_object(self, row):
         voting_id, voter_id, creation_date_str, additional_info = row
 
-        if len(row) != 4 or any(value is None for value in row):
+        if additional_info == None:
+            additional_info = ''
+
+        if voting_id is None or voter_id is None or creation_date_str is None:
             raise ValueError('Incomplete data in row')
 
         if Census.objects.filter(voting_id=voting_id, voter_id=voter_id).exists():
@@ -176,8 +178,17 @@ class CensusImportView(View):
 
                 try:
                     for row in reader:
-                        census_object = self.create_census_object(row)
-                        census_object.save()
+                        if isinstance(row, list):
+                            voting_id = row[0]
+                            voter_id = row[1]
+                        else:
+                            row_list = list(row)
+                            voting_id = row_list[0]
+                            voter_id = row_list[1]
+
+                        if (voting_id != None and voter_id != None):
+                            census_object = self.create_census_object(row)
+                            census_object.save()
 
                     return JsonResponse({'message': 'Census imported successfully'}, status=201)
 
@@ -197,7 +208,6 @@ class CensusImportView(View):
 class ExportCensusToCSV(View):
 
     def get(self, request):
-
         census_data = Census.objects.all()
 
         response = self.export_to_csv(census_data)
@@ -205,7 +215,6 @@ class ExportCensusToCSV(View):
         return response
 
     def export_to_csv(self, census_data):
-
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="census.csv"'
 
@@ -216,6 +225,7 @@ class ExportCensusToCSV(View):
             writer.writerow([census.voting_id, census.voter_id, census.creation_date, census.additional_info])
 
         return response
+
 
 @method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
 @method_decorator(csrf_protect, name='dispatch')
@@ -277,4 +287,3 @@ class ExportCensusToXLSX(View):
         workbook.close()
 
         return response
-

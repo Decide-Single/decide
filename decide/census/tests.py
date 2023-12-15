@@ -341,7 +341,7 @@ class CensusImportViewTest(TestCase):
         workbook = Workbook()
         sheet = workbook.active
         sheet.append(['voting_id', 'voter_id', 'creation_date', 'additional_info'])
-        sheet.append([1, 1, '2023-11-28 11:47:12.015914+00:00'])
+        sheet.append([1, '2023-11-28 11:47:12.015914+00:00'])
         excel_buffer = BytesIO()
         workbook.save(excel_buffer)
         excel_buffer.seek(0)
