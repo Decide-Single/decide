@@ -17,6 +17,8 @@ from decouple import config
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+CSRF_TRUSTED_ORIGINS = ['https://joaquin1.onrender.com/','https://stunning-palm-tree-q5x4v47g6jpfxpv4-8001.app.github.dev/','https://localhost:8001','https://localhost:8000']
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
@@ -24,7 +26,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
 
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG',cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -121,12 +123,13 @@ WSGI_APPLICATION = 'decide.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config("DATABASE_INT_URL"),
-        conn_max_age=600
-    )
-}
+if not DEBUG:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config("DATABASE_INT_URL"),
+            conn_max_age=600
+        )
+    }
 
 BASEURL = config('BASEURL', default='http://localhost:8000')
 
