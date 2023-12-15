@@ -207,7 +207,7 @@ class ReuseCensusView(View):
                     messages.error(request, 'La votación de origen y destino no pueden ser la misma.')
                 else:
                     source.add_census_to_another_votings(reciever)
-                    return redirect('http://localhost:8000/admin/voting/voting/')
+                    return redirect(settings.BASEURL+'/admin/voting/voting/')
             else:
                 messages.error(request, 'El formulario no es válido. Por favor, corrige los errores.')
         return render(request, self.template_name, {'form': form, 'votings':votings})
