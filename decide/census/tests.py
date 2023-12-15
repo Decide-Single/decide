@@ -489,6 +489,7 @@ class CensusImportViewTest(TestCase):
 
 class BaseExportTestCase(TestCase):
     def setUp(self):
+
         self.admin_user = User.objects.create_user(
             username='admin',
             password='admin_password',
@@ -737,14 +738,62 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
 
             self.assertEqual(worksheet.title, 'Sheet')
 
-            self.assert_excel_headers(worksheet)
+            expected_headers = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
 
-            self.assert_excel_data(worksheet)
+            for col_num, header in enumerate(expected_headers, start=1):
+                self.assertEqual(worksheet.cell(row=1, column=col_num).value, header)
+
+            # Get the expected data sorted by voting_id
+            expected_data_sorted = sorted(self.census_data, key=lambda x: x['voting_id'])
+
+            # Get the actual data sorted by voting_id
+            actual_data_sorted = []
+            for row_num in range(2, worksheet.max_row + 1):
+                row_data = [
+                    worksheet.cell(row=row_num, column=col_num).value
+                    for col_num in range(1, worksheet.max_column + 1)
+                ]
+                actual_data_sorted.append(row_data)
+
+            # Sort the actual data based on the first column (voting_id)
+            actual_data_sorted = sorted(actual_data_sorted, key=lambda x: x[0])
+
+            # Compare the sorted data
+            for i, (expected, actual) in enumerate(zip(expected_data_sorted, actual_data_sorted), start=2):
+                self.assert_exported_data_matches_census(actual, expected)
 
         finally:
             temp_file.close()
 
         self.logout()
+
+    def assert_exported_data_matches_census(self, actual_data, census):
+        expected_data = [
+            str(census['voting_id']),
+            str(census['voter_id']),
+            census['creation_date'].strftime('%Y-%m-%d %H:%M:%S'),
+            census['additional_info']
+        ]
+
+        for j in range(4):
+            if j == 2:
+                if isinstance(actual_data[j], str):
+                    actual_datetime = datetime.strptime(actual_data[j], '%Y-%m-%d %H:%M:%S')
+                    actual_datetime_rounded = actual_datetime.replace(microsecond=0)
+                    expected_datetime_rounded = census['creation_date'].replace(microsecond=0)
+                    self.assertEqual(
+                        actual_datetime_rounded.replace(tzinfo=None),
+                        expected_datetime_rounded.replace(tzinfo=None)
+                    )
+                else:
+                    actual_datetime_rounded = actual_data[j].replace(microsecond=0)
+                    expected_datetime_rounded = census['creation_date'].replace(microsecond=0)
+                    self.assertEqual(
+                        actual_datetime_rounded.replace(tzinfo=None),
+                        expected_datetime_rounded.replace(tzinfo=None)
+                    )
+            else:
+                self.assertEqual(str(actual_data[j]), expected_data[j])
 
     def assert_excel_headers(self, worksheet):
         expected_headers = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
