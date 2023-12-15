@@ -1,6 +1,7 @@
 import csv
 import json
 import openpyxl
+import xml.etree.ElementTree as ET
 from django.contrib.auth.decorators import user_passes_test
 
 from django.db.utils import IntegrityError
@@ -126,7 +127,7 @@ class CensusExportView(View):
 class CensusImportView(View):
     template_name = 'import_census.html'
     SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json',
-                               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+                               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/xml']
 
     def process_file(self, file, content_type):
         if content_type == 'text/csv':
@@ -140,6 +141,15 @@ class CensusImportView(View):
             workbook = load_workbook(file, read_only=True)
             sheet = workbook.active
             reader = sheet.iter_rows(min_row=2, values_only=True)
+        elif content_type == 'text/xml':
+            xml_content = file.read().decode('utf-8')
+            tree = ET.ElementTree(ET.fromstring(xml_content))
+            root = tree.getroot()
+            censuses = root.findall('.//Census')
+            reader = [(census.find('VotingID').text,
+                       census.find('VoterID').text,
+                       census.find('CreationDate').text,
+                       census.find('AdditionalInfo').text) for census in censuses]
         else:
             return None, JsonResponse({'error': 'Unsupported file format'}, status=400)
 
