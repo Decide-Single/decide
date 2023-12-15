@@ -6,13 +6,16 @@ from census.models import Census
 from base import mods
 from base.models import Auth, Key
 
+class QuestionType(models.TextChoices):
+    DEFAULT = "DEFAULT", "Default"
+    YESNO = "YESNO", "Yes/No"
 
 class Question(models.Model):
     desc = models.TextField()
+    question_type = models.CharField(max_length=20, choices=QuestionType.choices, default=QuestionType.DEFAULT)
 
     def __str__(self):
         return self.desc
-
 
 class QuestionOption(models.Model):
     question = models.ForeignKey(Question, related_name='options', on_delete=models.CASCADE)
@@ -26,7 +29,6 @@ class QuestionOption(models.Model):
 
     def __str__(self):
         return '{} ({})'.format(self.option, self.number)
-
 
 class Voting(models.Model):
     name = models.CharField(max_length=200)
