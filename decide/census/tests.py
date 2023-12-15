@@ -6,7 +6,6 @@ from datetime import timedelta
 
 import openpyxl
 from base.tests import BaseTestCase
-from django.core.files import File
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
@@ -15,7 +14,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from openpyxl.workbook import Workbook
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree
 from operator import attrgetter
 from io import BytesIO
 from selenium import webdriver
@@ -751,12 +750,12 @@ class ExportCensusToXMLTest(BaseExportTestCase):
         self.logout()
 
     def assert_xml_structure(self, xml_content):
-        root = ET.fromstring(xml_content)
+        root = ElementTree.fromstring(xml_content)
         self.assertEqual(root.tag, 'CensusData')
         self.assertGreater(len(root), 0)
 
     def assert_census_in_xml(self, xml_content, census):
-        root = ET.fromstring(xml_content)
+        root = ElementTree.fromstring(xml_content)
 
         matching_census = None
         for census_element in root.findall('Census'):
