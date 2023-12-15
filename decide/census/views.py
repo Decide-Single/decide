@@ -146,13 +146,17 @@ class CensusImportView(View):
             tree = ET.ElementTree(ET.fromstring(xml_content))
             root = tree.getroot()
             censuses = root.findall('.//Census')
-            reader = [(census.find('VotingID').text,
-                       census.find('VoterID').text,
-                       census.find('CreationDate').text,
-                       census.find('AdditionalInfo').text) for census in censuses]
+            reader = [
+                (
+                    census.find('VotingID').text if census.find('VotingID') is not None else None,
+                    census.find('VoterID').text if census.find('VoterID') is not None else None,
+                    census.find('CreationDate').text if census.find('CreationDate') is not None else None,
+                    census.find('AdditionalInfo').text if census.find('AdditionalInfo') is not None else None
+                )
+                for census in censuses
+            ]
         else:
             return None, JsonResponse({'error': 'Unsupported file format'}, status=400)
-
         return reader, None
 
     def create_census_object(self, row):

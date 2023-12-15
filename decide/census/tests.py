@@ -313,6 +313,32 @@ class CensusImportViewTest(TestCase):
         self._assert_census_data(Census.objects.all())
         self.logout()
 
+    def test_import_xml_success(self):
+        self.login_as_admin()
+        xml_data = """
+            <CensusData>
+                <Census>
+                    <VotingID>1</VotingID>
+                    <VoterID>1</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+                <Census>
+                    <VotingID>2</VotingID>
+                    <VoterID>2</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info2</AdditionalInfo>
+                </Census>
+            </CensusData>
+        """
+        xml_file = SimpleUploadedFile("test.xml", xml_data.encode(), content_type="text/xml")
+        response = self.client.post(reverse('import_census'), {'file': xml_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Census.objects.count(), 2)
+        self._assert_census_data(Census.objects.all())
+        self.logout()
+
     def test_import_csv_failure(self):
         self.login_as_admin()
         csv_file = SimpleUploadedFile("test_failure.csv",
@@ -348,6 +374,24 @@ class CensusImportViewTest(TestCase):
         excel_file = SimpleUploadedFile("test_failure.xlsx", excel_buffer.read(),
                                         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Census.objects.count(), 0)
+        self.logout()
+
+    def test_import_xml_failure(self):
+        self.login_as_admin()
+        xml_data = """
+            <CensusData>
+                <Census>
+                    <VotingID>Hola</VotingID>
+                    <VoterID>Hola</VoterID>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+            </CensusData>
+        """
+        xml_file = SimpleUploadedFile("test_failure.xml", xml_data.encode(), content_type="text/xml")
+        response = self.client.post(reverse('import_census'), {'file': xml_file}, format='multipart')
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 0)
@@ -393,6 +437,31 @@ class CensusImportViewTest(TestCase):
         excel_file = SimpleUploadedFile("test_duplicate.xlsx", excel_buffer.read(),
                                         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Census.objects.count(), 1)
+        self.logout()
+
+    def test_import_xml_duplicate_data(self):
+        self.login_as_admin()
+        xml_data = """
+            <CensusData>
+                <Census>
+                    <VotingID>1</VotingID>
+                    <VoterID>1</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+                <Census>
+                    <VotingID>1</VotingID>
+                    <VoterID>1</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+            </CensusData>
+        """
+        xml_file = SimpleUploadedFile("test_duplicate.xml", xml_data.encode(), content_type="text/xml")
+        response = self.client.post(reverse('import_census'), {'file': xml_file}, format='multipart')
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 1)
