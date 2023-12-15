@@ -795,7 +795,7 @@ class CensusExportViewTest(BaseExportTestCase):
         response = self.client.get(reverse('export_census_to_xlsx'))
         self.assertEqual(response.status_code, 302)
 
-    def test_export_census_to_xlsx_requires_admin_login(self):
+    def test_export_census_to_xml_requires_admin_login(self):
         response = self.client.get(reverse('export_census_to_xml'))
         self.assertEqual(response.status_code, 302)
 
