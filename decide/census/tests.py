@@ -6,7 +6,6 @@ from datetime import timedelta
 
 import openpyxl
 from base.tests import BaseTestCase
-
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
@@ -15,6 +14,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from openpyxl.workbook import Workbook
+from xml.etree import ElementTree
 from operator import attrgetter
 from io import BytesIO
 from selenium import webdriver
@@ -251,7 +251,8 @@ class CensusImportViewTest(TestCase):
         )
 
     def tearDown(self):
-        Census.objects.all().delete()
+        self.client.logout()
+        super().tearDown()
 
     def login_as_admin(self):
         self.client.force_login(self.admin_user)
@@ -313,6 +314,32 @@ class CensusImportViewTest(TestCase):
         self._assert_census_data(Census.objects.all())
         self.logout()
 
+    def test_import_xml_success(self):
+        self.login_as_admin()
+        xml_data = """
+            <CensusData>
+                <Census>
+                    <VotingID>1</VotingID>
+                    <VoterID>1</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+                <Census>
+                    <VotingID>2</VotingID>
+                    <VoterID>2</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info2</AdditionalInfo>
+                </Census>
+            </CensusData>
+        """
+        xml_file = SimpleUploadedFile("test.xml", xml_data.encode(), content_type="text/xml")
+        response = self.client.post(reverse('import_census'), {'file': xml_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Census.objects.count(), 2)
+        self._assert_census_data(Census.objects.all())
+        self.logout()
+
     def test_import_csv_failure(self):
         self.login_as_admin()
         csv_file = SimpleUploadedFile("test_failure.csv",
@@ -341,13 +368,31 @@ class CensusImportViewTest(TestCase):
         workbook = Workbook()
         sheet = workbook.active
         sheet.append(['voting_id', 'voter_id', 'creation_date', 'additional_info'])
-        sheet.append([1, 1, '2023-11-28 11:47:12.015914+00:00'])
+        sheet.append([1, '2023-11-28 11:47:12.015914+00:00'])
         excel_buffer = BytesIO()
         workbook.save(excel_buffer)
         excel_buffer.seek(0)
         excel_file = SimpleUploadedFile("test_failure.xlsx", excel_buffer.read(),
                                         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response = self.client.post(reverse('import_census'), {'file': excel_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Census.objects.count(), 0)
+        self.logout()
+
+    def test_import_xml_failure(self):
+        self.login_as_admin()
+        xml_data = """
+            <CensusData>
+                <Census>
+                    <VotingID>Hola</VotingID>
+                    <VoterID>Hola</VoterID>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+            </CensusData>
+        """
+        xml_file = SimpleUploadedFile("test_failure.xml", xml_data.encode(), content_type="text/xml")
+        response = self.client.post(reverse('import_census'), {'file': xml_file}, format='multipart')
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(Census.objects.count(), 0)
@@ -398,6 +443,31 @@ class CensusImportViewTest(TestCase):
         self.assertEqual(Census.objects.count(), 1)
         self.logout()
 
+    def test_import_xml_duplicate_data(self):
+        self.login_as_admin()
+        xml_data = """
+            <CensusData>
+                <Census>
+                    <VotingID>1</VotingID>
+                    <VoterID>1</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+                <Census>
+                    <VotingID>1</VotingID>
+                    <VoterID>1</VoterID>
+                    <CreationDate>2023-11-28 11:47:12.015914+00:00</CreationDate>
+                    <AdditionalInfo>Info1</AdditionalInfo>
+                </Census>
+            </CensusData>
+        """
+        xml_file = SimpleUploadedFile("test_duplicate.xml", xml_data.encode(), content_type="text/xml")
+        response = self.client.post(reverse('import_census'), {'file': xml_file}, format='multipart')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Census.objects.count(), 1)
+        self.logout()
+
     def test_invalid_file_format(self):
         self.login_as_admin()
         invalid_file = SimpleUploadedFile("test.txt", b"Invalid file content", content_type="text/plain")
@@ -419,6 +489,7 @@ class CensusImportViewTest(TestCase):
 
 class BaseExportTestCase(TestCase):
     def setUp(self):
+
         self.admin_user = User.objects.create_user(
             username='admin',
             password='admin_password',
@@ -482,6 +553,8 @@ class ExportCensusToCSVTest(BaseExportTestCase):
         expected_headers = ['Voting ID', 'Voter ID', 'Creation Date', 'Additional Info']
         self.assertEqual(response_lines[0].split(','), expected_headers)
 
+        self.logout()
+
     def test_export_data_to_csv(self):
         self.login_as_admin()
 
@@ -512,6 +585,8 @@ class ExportCensusToCSVTest(BaseExportTestCase):
 
         finally:
             os.remove(temp_file.name)
+
+        self.logout()
 
     def assert_exported_data_matches_census(self, actual_data, census):
         expected_data = [
@@ -549,6 +624,8 @@ class ExportCensusToJSONTest(BaseExportTestCase):
             if i < len(self.census_instances):
                 self.assert_exported_census_data_matches_instance(census_data, self.census_instances[i])
 
+        self.logout()
+
     def test_exported_json_to_file(self):
         self.login_as_admin()
 
@@ -574,6 +651,8 @@ class ExportCensusToJSONTest(BaseExportTestCase):
                 self.assert_exported_census_data_matches_instance(saved_census_data, self.census_instances[i])
 
         os.remove(temp_file_path)
+
+        self.logout()
 
     def assert_exported_census_data_matches_instance(self, exported_data, census_instance):
         self.assertEqual(exported_data['voting_id'], census_instance.voting_id)
@@ -627,6 +706,8 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
         finally:
             temp_file.close()
 
+        self.logout()
+
     def test_export_data_to_excel(self):
         self.login_as_admin()
 
@@ -657,12 +738,62 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
 
             self.assertEqual(worksheet.title, 'Sheet')
 
-            self.assert_excel_headers(worksheet)
+            expected_headers = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
 
-            self.assert_excel_data(worksheet)
+            for col_num, header in enumerate(expected_headers, start=1):
+                self.assertEqual(worksheet.cell(row=1, column=col_num).value, header)
+
+            # Get the expected data sorted by voting_id
+            expected_data_sorted = sorted(self.census_data, key=lambda x: x['voting_id'])
+
+            # Get the actual data sorted by voting_id
+            actual_data_sorted = []
+            for row_num in range(2, worksheet.max_row + 1):
+                row_data = [
+                    worksheet.cell(row=row_num, column=col_num).value
+                    for col_num in range(1, worksheet.max_column + 1)
+                ]
+                actual_data_sorted.append(row_data)
+
+            # Sort the actual data based on the first column (voting_id)
+            actual_data_sorted = sorted(actual_data_sorted, key=lambda x: x[0])
+
+            # Compare the sorted data
+            for i, (expected, actual) in enumerate(zip(expected_data_sorted, actual_data_sorted), start=2):
+                self.assert_exported_data_matches_census(actual, expected)
 
         finally:
             temp_file.close()
+
+        self.logout()
+
+    def assert_exported_data_matches_census(self, actual_data, census):
+        expected_data = [
+            str(census['voting_id']),
+            str(census['voter_id']),
+            census['creation_date'].strftime('%Y-%m-%d %H:%M:%S'),
+            census['additional_info']
+        ]
+
+        for j in range(4):
+            if j == 2:
+                if isinstance(actual_data[j], str):
+                    actual_datetime = datetime.strptime(actual_data[j], '%Y-%m-%d %H:%M:%S')
+                    actual_datetime_rounded = actual_datetime.replace(microsecond=0)
+                    expected_datetime_rounded = census['creation_date'].replace(microsecond=0)
+                    self.assertEqual(
+                        actual_datetime_rounded.replace(tzinfo=None),
+                        expected_datetime_rounded.replace(tzinfo=None)
+                    )
+                else:
+                    actual_datetime_rounded = actual_data[j].replace(microsecond=0)
+                    expected_datetime_rounded = census['creation_date'].replace(microsecond=0)
+                    self.assertEqual(
+                        actual_datetime_rounded.replace(tzinfo=None),
+                        expected_datetime_rounded.replace(tzinfo=None)
+                    )
+            else:
+                self.assertEqual(str(actual_data[j]), expected_data[j])
 
     def assert_excel_headers(self, worksheet):
         expected_headers = ['voting_id', 'voter_id', 'creation_date', 'additional_info']
@@ -678,6 +809,90 @@ class ExportCensusToXLSXTest(BaseExportTestCase):
                              census_instance.creation_date.strftime('%Y-%m-%d %H:%M:%S'))
             self.assertEqual(worksheet.cell(row=row_num, column=4).value, census_instance.additional_info)
 
+
+class ExportCensusToXMLTest(BaseExportTestCase):
+
+    def test_export_headers_to_xml(self):
+        self.login_as_admin()
+
+        url = reverse('export_census_to_xml')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+
+        response_content = response.content.decode('utf-8')
+        expected_headers = ['<CensusData>', '<Census>']
+
+        for header in expected_headers:
+            self.assertIn(header, response_content)
+
+        self.assert_xml_structure(response_content)
+
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.xml') as temp_file:
+            temp_file.write(response_content)
+
+        with open(temp_file.name, 'r') as file:
+            self.assertEqual(file.read(), response_content)
+
+        self.logout()
+
+    def test_export_data_to_xml(self):
+        self.login_as_admin()
+
+        url = reverse('export_census_to_xml')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+
+        response_content = response.content.decode('utf-8')
+        expected_headers = ['<CensusData>', '<Census>']
+
+        for header in expected_headers:
+            self.assertIn(header, response_content)
+
+        self.assert_xml_structure(response_content)
+
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.xml') as temp_file:
+            temp_file.write(response_content)
+
+        with open(temp_file.name, 'r') as file:
+            self.assertEqual(file.read(), response_content)
+
+        for census in self.census_data:
+            self.assert_census_in_xml(response_content, census)
+
+        self.assertIn('</CensusData>', response_content)
+
+        with open(temp_file.name, 'r') as file:
+            self.assertEqual(file.read(), response_content)
+
+        self.logout()
+
+    def assert_xml_structure(self, xml_content):
+        root = ElementTree.fromstring(xml_content)
+        self.assertEqual(root.tag, 'CensusData')
+        self.assertGreater(len(root), 0)
+
+    def assert_census_in_xml(self, xml_content, census):
+        root = ElementTree.fromstring(xml_content)
+
+        matching_census = None
+        for census_element in root.findall('Census'):
+            voting_id = census_element.find('VotingID').text
+            voter_id = census_element.find('VoterID').text
+            creation_date = census_element.find('CreationDate').text
+            additional_info = census_element.find('AdditionalInfo').text
+
+            if (
+                voting_id == str(census['voting_id']) and
+                voter_id == str(census['voter_id']) and
+                creation_date == census['creation_date'].strftime('%Y-%m-%d %H:%M:%S') and
+                additional_info == census['additional_info']
+            ):
+                matching_census = census_element
+                break
+
+        self.assertIsNotNone(matching_census, f"Census {census} not found in XML content.")
 
 
 class CensusExportViewTest(BaseExportTestCase):
@@ -698,11 +913,16 @@ class CensusExportViewTest(BaseExportTestCase):
         response = self.client.get(reverse('export_census_to_xlsx'))
         self.assertEqual(response.status_code, 302)
 
+    def test_export_census_to_xml_requires_admin_login(self):
+        response = self.client.get(reverse('export_census_to_xml'))
+        self.assertEqual(response.status_code, 302)
+
     def test_get_export_census_view_as_admin(self):
         self.login_as_admin()
         response = self.client.get(reverse('export_census'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'export_census.html')
+        self.logout()
 
     def test_post_valid_format_as_admin(self):
         self.login_as_admin()
@@ -711,6 +931,7 @@ class CensusExportViewTest(BaseExportTestCase):
         expected_url = reverse('export_census_to_csv')
         self.assertIsInstance(response, HttpResponseRedirect)
         self.assertRedirects(response, expected_url)
+        self.logout()
 
     def test_post_invalid_format_as_admin(self):
         self.login_as_admin()
@@ -720,6 +941,7 @@ class CensusExportViewTest(BaseExportTestCase):
         self.assertTemplateUsed(response, 'export_census.html')
         self.assertIn('error_message', response.context)
         self.assertEqual(response.context['error_message'], 'Export format not valid.')
+        self.logout()
 
     def test_post_missing_format_as_admin(self):
         self.login_as_admin()
@@ -728,4 +950,7 @@ class CensusExportViewTest(BaseExportTestCase):
         self.assertTemplateUsed(response, 'export_census.html')
         self.assertIn('error_message', response.context)
         self.assertEqual(response.context['error_message'], 'Export format not valid.')
+        self.logout()
+
+
 
