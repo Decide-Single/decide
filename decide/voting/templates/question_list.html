@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<div class="container mt-5">
+    <h1 class="mb-4">Questions</h1>
+
+    {% if questions %}
+    <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Options</th>
+                <th>Manage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for question in questions %}
+                <tr>
+                    <td>{{ question.id }}</td>
+                    <td>{{ question.desc }}</td>
+                    <td>
+                        {% if question.question_type == 'YESNO' %}
+                            <span class="badge bg-info">Yes/No</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Default</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if question.options.all %}
+                            <ul class="list-unstyled">
+                                {% for option in question.options.all %}
+                                <li>{{ option }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <span class="text-muted">No options for this question.</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{% url 'question_delete' question.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'question_add' %}" class="btn btn-primary">New Question</a>
+    {% else %}
+    <h2>There's no questions. <a href="{% url 'question_add' %}" class="btn btn-primary">Create the first one!</a></h2>
+    {% endif %} 
+</div>
+{% endblock %}

@@ -12,6 +12,9 @@ WORKDIR /app
 RUN git clone https://github.com/egc-L5/decide-single-joaquin1.git .
 RUN pip install -r requirements.txt
 
+ADD .env /app/.env
+ENV $(cat /app/.env | xargs)
+
 WORKDIR /app/decide
 
 # local settings.py

@@ -1,6 +1,7 @@
 import csv
 import json
 import openpyxl
+import xml.etree.ElementTree as ET
 from django.contrib.auth.decorators import user_passes_test
 
 from django.db.utils import IntegrityError
@@ -15,9 +16,9 @@ from django.http import JsonResponse
 from django.http import HttpResponseRedirect
 from openpyxl import load_workbook
 from rest_framework.status import (
-        HTTP_201_CREATED as ST_201,
-        HTTP_204_NO_CONTENT as ST_204,
-        HTTP_409_CONFLICT as ST_409
+    HTTP_201_CREATED as ST_201,
+    HTTP_204_NO_CONTENT as ST_204,
+    HTTP_409_CONFLICT as ST_409
 )
 
 from datetime import datetime
@@ -76,7 +77,6 @@ class CensusCreate(generics.ListCreateAPIView):
         return Response(data)
 
 
-
 class CensusDetail(generics.RetrieveDestroyAPIView):
 
     def destroy(self, request, voting_id, *args, **kwargs):
@@ -102,8 +102,8 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
 @method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
 @method_decorator(csrf_protect, name='dispatch')
 class CensusExportView(View):
+    template_name = 'export_census.html'
 
-    template_name='export_census.html'
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
 
@@ -114,6 +114,7 @@ class CensusExportView(View):
         'csv': 'export_census_csv/',
         'json': 'export_census_json/',
         'xlsx': 'export_census_xlsx/',
+        'xml': 'export_census_xml/',
     }
 
         if export_format in url_mapping:
@@ -125,9 +126,9 @@ class CensusExportView(View):
 @method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
 @method_decorator(csrf_protect, name='dispatch')
 class CensusImportView(View):
-
     template_name = 'import_census.html'
-    SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json',
+                               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/xml']
 
     def process_file(self, file, content_type):
         if content_type == 'text/csv':
@@ -141,15 +142,31 @@ class CensusImportView(View):
             workbook = load_workbook(file, read_only=True)
             sheet = workbook.active
             reader = sheet.iter_rows(min_row=2, values_only=True)
+        elif content_type == 'text/xml':
+            xml_content = file.read().decode('utf-8')
+            tree = ET.ElementTree(ET.fromstring(xml_content))
+            root = tree.getroot()
+            censuses = root.findall('.//Census')
+            reader = [
+                (
+                    census.find('VotingID').text if census.find('VotingID') is not None else None,
+                    census.find('VoterID').text if census.find('VoterID') is not None else None,
+                    census.find('CreationDate').text if census.find('CreationDate') is not None else None,
+                    census.find('AdditionalInfo').text if census.find('AdditionalInfo') is not None else None
+                )
+                for census in censuses
+            ]
         else:
             return None, JsonResponse({'error': 'Unsupported file format'}, status=400)
-
         return reader, None
 
     def create_census_object(self, row):
         voting_id, voter_id, creation_date_str, additional_info = row
 
-        if len(row) != 4 or any(value is None for value in row):
+        if additional_info == None:
+            additional_info = ''
+
+        if voting_id is None or voter_id is None or creation_date_str is None:
             raise ValueError('Incomplete data in row')
 
         if Census.objects.filter(voting_id=voting_id, voter_id=voter_id).exists():
@@ -176,8 +193,17 @@ class CensusImportView(View):
 
                 try:
                     for row in reader:
-                        census_object = self.create_census_object(row)
-                        census_object.save()
+                        if isinstance(row, list):
+                            voting_id = row[0]
+                            voter_id = row[1]
+                        else:
+                            row_list = list(row)
+                            voting_id = row_list[0]
+                            voter_id = row_list[1]
+
+                        if (voting_id != None and voter_id != None):
+                            census_object = self.create_census_object(row)
+                            census_object.save()
 
                     return JsonResponse({'message': 'Census imported successfully'}, status=201)
 
@@ -197,7 +223,6 @@ class CensusImportView(View):
 class ExportCensusToCSV(View):
 
     def get(self, request):
-
         census_data = Census.objects.all()
 
         response = self.export_to_csv(census_data)
@@ -205,7 +230,6 @@ class ExportCensusToCSV(View):
         return response
 
     def export_to_csv(self, census_data):
-
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="census.csv"'
 
@@ -216,6 +240,7 @@ class ExportCensusToCSV(View):
             writer.writerow([census.voting_id, census.voter_id, census.creation_date, census.additional_info])
 
         return response
+
 
 @method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
 @method_decorator(csrf_protect, name='dispatch')
@@ -278,3 +303,27 @@ class ExportCensusToXLSX(View):
 
         return response
 
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
+class ExportCensusToXML(View):
+    def get(self, request):
+        census_data = Census.objects.all()
+        response = self.export_to_xml(census_data)
+        return response
+
+    def export_to_xml(self, census_data):
+        root = ET.Element("CensusData")
+
+        for census in census_data:
+            census_element = ET.SubElement(root, "Census")
+            ET.SubElement(census_element, "VotingID").text = str(census.voting_id)
+            ET.SubElement(census_element, "VoterID").text = str(census.voter_id)
+            ET.SubElement(census_element, "CreationDate").text = census.creation_date.strftime('%Y-%m-%d %H:%M:%S')
+            ET.SubElement(census_element, "AdditionalInfo").text = census.additional_info
+
+        xml_data = ET.tostring(root, encoding="utf-8")
+
+        response = HttpResponse(xml_data, content_type="application/xml")
+        response["Content-Disposition"] = 'attachment; filename="census.xml"'
+
+        return response
