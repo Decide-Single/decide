@@ -2,18 +2,20 @@ from django.db import models
 from django.db.models import JSONField
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponse
 from census.models import Census
 from base import mods
 from base.models import Auth, Key
 
+class QuestionType(models.TextChoices):
+    DEFAULT = "DEFAULT", "Default"
+    YESNO = "YESNO", "Yes/No"
 
 class Question(models.Model):
     desc = models.TextField()
+    question_type = models.CharField(max_length=20, choices=QuestionType.choices, default=QuestionType.DEFAULT)
 
     def __str__(self):
         return self.desc
-
 
 class QuestionOption(models.Model):
     question = models.ForeignKey(Question, related_name='options', on_delete=models.CASCADE)
@@ -27,7 +29,6 @@ class QuestionOption(models.Model):
 
     def __str__(self):
         return '{} ({})'.format(self.option, self.number)
-
 
 class Voting(models.Model):
     name = models.CharField(max_length=200)
@@ -131,18 +132,15 @@ class Voting(models.Model):
         self.save()
 
     def add_census_to_another_votings(self,voting_receiver):
-        try:   
-            census= Census.objects.filter(voting_id=self.id)
-            self.add_census(voting_receiver.id,census)
+        census= Census.objects.filter(voting_id=self.id)
+        self.add_census(voting_receiver.id,census)
 
-        except Voting.DoesNotExist:
-            return HttpResponse("El objeto no existe")
     
     def add_census(self,voting_id,census):
         for element in census:
             if(not Census.objects.filter(voting_id=voting_id, voter_id=element.voter_id).exists()):
                 voter=element.voter_id
-                new_census= Census.objects.create(voter_id=voter, voting_id=voting_id)
+                new_census= Census.objects.create(voter_id=voter, voting_id=voting_id, additional_info="Copiado")
                 new_census.save()
 
     def __str__(self):

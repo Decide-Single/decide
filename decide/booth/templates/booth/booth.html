@@ -22,7 +22,7 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item" v-if="!signup">
-                        <button v-on:click="decideLogout" class="btn btn-secondary">{% trans "Logout" %}</button>
+                        <button v-on:click="decideLogout" class="btn btn-secondary">Logout</button>
                     </li>
                     <li class="nav-item" v-if="signup">
                         <!-- Button trigger modal -->
@@ -30,27 +30,6 @@
                             Login
                         </button>
                     </li>
-                    <form class="language-form" id="languageForm" method="post" action="{% url 'set_language' %}">
-                        {% csrf_token %}
-                        <label class="language-label" for="language">Lang:</label>
-                        <select class="language-select" name="language" id="language" onchange="changeLanguage(this.value)">
-                            {% for lang_code, lang_name in LANGUAGES %}
-                                {% if lang_code == LANGUAGE_CODE %}
-                                    <option value="{{ lang_code }}" selected>{{ lang_name }}</option>
-                                {% else %}
-                                    <option value="{{ lang_code}}">{{ lang_name }}</option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>
-                    </form>
-                
-                    <script>
-                        function changeLanguage(languageCode) {
-                            const form = document.getElementById('languageForm');
-                            form.elements.language.value = languageCode;
-                            form.submit();
-                        }
-                    </script>
                 </ul>
             </div>
         </div>
@@ -93,7 +72,7 @@
                 <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
             </svg>
             <div class="ms-2">
-                {% trans "You must login to join the voting!" %}
+                You must login to join the voting!
             </div>
         </div>
         <div class="container-fluid">
@@ -109,7 +88,7 @@
                             <!-- Register -->
                             <form @submit="onSubmitLogin" v-if="signup">
                                 <div class="form-group mt-2">
-                                    <label for="username">{% trans "Username" %}</label>:
+                                    <label for="username">Username</label>:
                                     <input
                                         class="ml-2 form-control"
                                         id="username"
@@ -119,7 +98,7 @@
                                         required />
                                 </div>
                                 <div class="form-group mt-1">
-                                    <label for="password">{% trans "Password" %}</label>:
+                                    <label for="password">Password</label>:
                                     <input
                                         class = "form-control"
                                         id="password"
@@ -128,7 +107,7 @@
                                         v-model="form.password"
                                         required />
                                 </div>
-                                <button class="btn btn-primary mt-3" type="submit" data-bs-dismiss="modal">{% trans "Login" %}</button>
+                                <button class="btn btn-primary mt-3" type="submit" data-bs-dismiss="modal">Login</button>
                             </form>
                         </div>
                     </div>
@@ -150,7 +129,7 @@
                 </div>
             </form>
             <button class="btn btn-primary mt-3" v-on:click="decideSend">
-                {% trans "Vote" %}
+                Vote
             </button>
         </div>
 

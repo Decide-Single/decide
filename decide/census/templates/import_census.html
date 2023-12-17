@@ -1,47 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Import Census</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .attributes {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .attributes p {
+            margin: 8px 0;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        label {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        input {
+            margin-bottom: 25px;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 14px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .line {
+            border-top: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .warning {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            color: #ff6f6f;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .message-box {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #eaf7fd;
+            border: 1px solid #b3d7f2;
+        }
+
+        .import-status,
+        .error-status {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .import-status {
+            color: #4CAF50;
+        }
+
+        .error-status {
+            color: #ff6f6f;
+        }
+    </style>
 </head>
+
 <body>
-    <form id="importForm" enctype="multipart/form-data" method="post">
-        {% csrf_token %}
-        <label for="fileInput">Attach a CSV, JSON, or XLSX file:</label>
-        <input type="file" id="fileInput" name="file" accept=".csv, application/json, .xlsx" required>
-        <button type="submit">Import Census</button>
-    </form>
+    <div class="container">
+        <h1>Census Import Screen</h1>
+        <div class="attributes">
+            <p style="font-weight: bold">Expected attributes for the Census data:</p>
+            <ul>
+                <li>Voting ID (Example: 1)</li>
+                <li>Voter ID (Example: 2)</li>
+                <li>Creation Date (Example: 2023-11-28 11:47:12.015914+00:00)</li>
+                <li>Additional Info (Example: Hello World!)</li>
+                <li>In CSV and XLSX files, include the header</li>
+            </ul>
+        </div>
 
-    <script>
-        document.getElementById('importForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+        <div class="line"></div>
+        <form id="importForm" enctype="multipart/form-data" method="post">
+            {% csrf_token %}
+            <label for="fileInput">Attach a CSV, JSON, XLSX or XML file:</label>
+            <input type="file" id="fileInput" name="file" accept=".csv, application/json, .xlsx, .xml" required>
+            <div class="line"></div>
+            <button type="submit">Import Census</button>
+        </form>
 
-            const formData = new FormData();
-            const fileInput = document.getElementById('fileInput').files[0];
-            formData.append('file', fileInput);
+        <div class="line"></div>
 
-            fetch('/census/import/', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Network response was not ok.');
-            })
-            .then(data => {
-                console.log(data); // Handle the response data here
-            })
-            .catch(error => {
-                console.error('There has been a problem with your fetch operation:', error);
-                if (error.response) {
-                    console.error('Response status:', error.response.status);
-                    console.error('Response message:', error.response.statusText);
-                }
+        <div class="warning">
+            <p>Warning: When importing a census, the creation date will be set to the current time, and duplicates are not
+                accepted.</p>
+        </div>
+
+        <div class="message-box" id="messageBox">
+            <div class="import-status" id="importStatus"></div>
+            <div class="error-status" id="errorStatus"></div>
+        </div>
+
+        <script>
+            document.getElementById('importForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const formData = new FormData();
+                const fileInput = document.getElementById('fileInput').files[0];
+                formData.append('file', fileInput);
+
+                // Retrieve CSRF token from the page and append it to the FormData
+                const csrfToken = document.getElementsByName('csrfmiddlewaretoken')[0].value;
+                formData.append('csrfmiddlewaretoken', csrfToken);
+
+                fetch('/census/import/', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => {
+                    document.getElementById('importStatus').innerHTML = data.message;
+                    document.getElementById('errorStatus').innerHTML = ''; // Clear any previous error message
+                    showMessageBox();
+                })
+                .catch(error => {
+                    console.error('There has been a problem with your fetch operation:', error);
+
+                    if (error.response) {
+                        console.error('Response status:', error.response.status);
+                        console.error('Response message:', error.response.statusText);
+                        document.getElementById('importStatus').innerHTML = '';
+                        document.getElementById('errorStatus').innerHTML = 'Error importing census: ' + error.response.statusText;
+                        showMessageBox();
+                    } else {
+                        console.error('Error without a response:', error);
+                        document.getElementById('importStatus').innerHTML = '';
+                        document.getElementById('errorStatus').innerHTML = 'Error importing census. Please check your file for invalid or duplicated data and try again.';
+                        showMessageBox();
+                    }
+                });
             });
-        });
-    </script>
+
+        function showMessageBox() {
+                const messageBox = document.getElementById('messageBox');
+                messageBox.style.display = 'block';
+            }
+        </script>
+
 </body>
+
 </html>

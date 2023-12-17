@@ -1,28 +1,32 @@
 import csv
 import json
 import openpyxl
+import xml.etree.ElementTree as ET
+from django.contrib.auth.decorators import user_passes_test
 
 from django.db.utils import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_protect
 from rest_framework import generics
 from rest_framework.response import Response
 from django.http import JsonResponse
 from django.http import HttpResponseRedirect
 from openpyxl import load_workbook
 from rest_framework.status import (
-        HTTP_201_CREATED as ST_201,
-        HTTP_204_NO_CONTENT as ST_204,
-        HTTP_400_BAD_REQUEST as ST_400,
-        HTTP_401_UNAUTHORIZED as ST_401,
-        HTTP_409_CONFLICT as ST_409
+    HTTP_201_CREATED as ST_201,
+    HTTP_204_NO_CONTENT as ST_204,
+    HTTP_409_CONFLICT as ST_409
 )
 
 from datetime import datetime
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from base.perms import UserIsStaff
 from .models import Census
+from store.models import Vote
 
 
 class CensusCreate(generics.ListCreateAPIView):
@@ -31,44 +35,46 @@ class CensusCreate(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         voting_id = request.data.get('voting_id')
         voters = request.data.get('voters')
-        try:
-            for voter in voters:
-                census = Census(voting_id=voting_id, voter_id=voter)
-                census.save()
-        except IntegrityError:
-            return Response('Error try to create census', status=ST_409)
-        return Response('Census created', status=ST_201)
 
-    # Ajusta las vistas para agregar funcionalidad de filtrado
+        try:
+            census = Census(voting_id=voting_id, voter_id=voters[0])
+            census.save()
+
+            if (timezone.now() - census.creation_date).days >= 7:
+                census.status = 'Desactivado'
+            else:
+                census.status = 'Activo'
+
+            census.has_voted = Vote.objects.filter(voting_id=voting_id, voter_id=voters[0]).exists()
+            census.save()
+
+        except IntegrityError:
+            return Response('Error trying to create census', status=ST_409)
+
+        return Response('Census created', status=ST_201)
 
     def list(self, request, *args, **kwargs):
         voting_id = request.GET.get('voting_id')
-        sex = request.GET.get('sex')
-        locality = request.GET.get('locality')
-        vote_date = request.GET.get('vote_date')
-        has_voted = request.GET.get('has_voted')
-        vote_result = request.GET.get('vote_result')
-        vote_method = request.GET.get('vote_method')
+        creation_date = request.GET.get('creation_date')
 
         queryset = Census.objects.filter(voting_id=voting_id)
 
-        # Filtrar por campos adicionales
-        if sex:
-            queryset = queryset.filter(sex=sex)
-        if locality:
-            queryset = queryset.filter(locality=locality)
-        if vote_date:
-            queryset = queryset.filter(vote_date=vote_date)
-        if has_voted:
-            queryset = queryset.filter(has_voted=has_voted.lower() == 'true')
-        if vote_result:
-            queryset = queryset.filter(vote_result=vote_result)
-        if vote_method:
-            queryset = queryset.filter(vote_method=vote_method)
+        if creation_date:
+            queryset = queryset.filter(creation_date__gte=creation_date)
 
-        voters = queryset.values_list('voter_id', flat=True)
-        return Response({'voters': voters})
+        data = []
+        for census in queryset:
+            status = 'Desactivado' if (timezone.now() - census.creation_date).days >= 7 else 'Activo'
+            has_voted = Vote.objects.filter(voting_id=voting_id, voter_id=census.voter_id).exists()
+            data.append({
+                'voter_id': census.voter_id,
+                'creation_date': census.creation_date.strftime('%d-%m-%Y %H:%M:%S'),
+                'status': status,
+                'total_voters': Census.objects.filter(voting_id=voting_id).count(),
+                'has_voted': has_voted,
+            })
 
+        return Response(data)
 
 
 class CensusDetail(generics.RetrieveDestroyAPIView):
@@ -81,39 +87,97 @@ class CensusDetail(generics.RetrieveDestroyAPIView):
 
     def retrieve(self, request, voting_id, *args, **kwargs):
         voter = request.GET.get('voter_id')
-        try:
-            Census.objects.get(voting_id=voting_id, voter_id=voter)
-        except ObjectDoesNotExist:
-            return Response('Invalid voter', status=ST_401)
-        return Response('Valid voter')
+        census = get_object_or_404(Census, voting_id=voting_id, voter_id=voter)
+        return Response({
+            'voting_id': census.voting_id,
+            'voter_id': census.voter_id,
+            'creation_date': census.creation_date.strftime('%d-%m-%Y %H:%M:%S'),
+            'status': 'Desactivado' if (timezone.now() - census.creation_date).days >= 7 else 'Activo',
+            'total_voters': Census.objects.filter(voting_id=voting_id).count(),
+        })
 
+
+# ---------
+
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class CensusExportView(View):
+    template_name = 'export_census.html'
 
-    template_name='export_census.html'
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
 
     def post(self, request):
-        # Obtener el valor del botón presionado
         export_format = request.POST.get('export_format')
 
-        # Definir las URL correspondientes a cada formato de exportación
         url_mapping = {
         'csv': 'export_census_csv/',
         'json': 'export_census_json/',
         'xlsx': 'export_census_xlsx/',
+        'xml': 'export_census_xml/',
     }
 
         if export_format in url_mapping:
             return HttpResponseRedirect(url_mapping[export_format])
         else:
-            # Manejar el caso en el que no se seleccionó un formato válido
             return render(request, 'export_census.html', {'error_message': 'Export format not valid.'})
 
 
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class CensusImportView(View):
-
     template_name = 'import_census.html'
+    SUPPORTED_CONTENT_TYPES = ['text/csv', 'application/json',
+                               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/xml']
+
+    def process_file(self, file, content_type):
+        if content_type == 'text/csv':
+            decoded_file = file.read().decode('utf-8').splitlines()
+            reader = csv.reader(decoded_file)
+            next(reader, None)
+        elif content_type == 'application/json':
+            data = json.loads(file.read().decode('utf-8'))
+            reader = (item.values() for item in data)
+        elif content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+            workbook = load_workbook(file, read_only=True)
+            sheet = workbook.active
+            reader = sheet.iter_rows(min_row=2, values_only=True)
+        elif content_type == 'text/xml':
+            xml_content = file.read().decode('utf-8')
+            tree = ET.ElementTree(ET.fromstring(xml_content))
+            root = tree.getroot()
+            censuses = root.findall('.//Census')
+            reader = [
+                (
+                    census.find('VotingID').text if census.find('VotingID') is not None else None,
+                    census.find('VoterID').text if census.find('VoterID') is not None else None,
+                    census.find('CreationDate').text if census.find('CreationDate') is not None else None,
+                    census.find('AdditionalInfo').text if census.find('AdditionalInfo') is not None else None
+                )
+                for census in censuses
+            ]
+        else:
+            return None, JsonResponse({'error': 'Unsupported file format'}, status=400)
+        return reader, None
+
+    def create_census_object(self, row):
+        voting_id, voter_id, creation_date_str, additional_info = row
+
+        if additional_info == None:
+            additional_info = ''
+
+        if voting_id is None or voter_id is None or creation_date_str is None:
+            raise ValueError('Incomplete data in row')
+
+        if Census.objects.filter(voting_id=voting_id, voter_id=voter_id).exists():
+            raise ValueError('Duplicate data found')
+
+        return Census(
+            voting_id=voting_id,
+            voter_id=voter_id,
+            creation_date=timezone.now(),
+            additional_info=additional_info
+        )
 
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
@@ -122,68 +186,64 @@ class CensusImportView(View):
         if request.method == 'POST':
             file = request.FILES.get('file')
             if file:
+                content_type = file.content_type
+                reader, response = self.process_file(file, content_type)
+                if response:
+                    return response
+
                 try:
-                    if file.content_type == 'text/csv':
-                        decoded_file = file.read().decode('utf-8').splitlines()
-                        reader = csv.reader(decoded_file)
-                        for index, row in enumerate(reader):
-                            voting_id, voter_id = row
-                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
-                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+                    for row in reader:
+                        if isinstance(row, list):
+                            voting_id = row[0]
+                            voter_id = row[1]
+                        else:
+                            row_list = list(row)
+                            voting_id = row_list[0]
+                            voter_id = row_list[1]
 
-                    elif file.content_type == 'application/json':
-                        data = json.loads(file.read().decode('utf-8'))
-                        for item in data:
-                            voting_id, voter_id = item['voting_id'], item['voter_id']
-                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
-                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
+                        if (voting_id != None and voter_id != None):
+                            census_object = self.create_census_object(row)
+                            census_object.save()
 
-                    elif file.content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-                        workbook = load_workbook(file, read_only=True)
-                        sheet = workbook.active
+                    return JsonResponse({'message': 'Census imported successfully'}, status=201)
 
-                        for row in sheet.iter_rows(min_row=2, values_only=True):
-                            voting_id, voter_id = row
-                            Census.objects.create(voting_id=voting_id, voter_id=voter_id)
+                except ValueError as ve:
+                    return JsonResponse({'error': str(ve)}, status=400)
 
-                        return JsonResponse({'message': 'Census imported successfully'}, status=201)
-
-
-                    else:
-                        return JsonResponse({'error': 'Unsupported file format'}, status=400)
                 except Exception as e:
-                    return JsonResponse({'error': 'Error trying to create census: {}'.format(str(e))}, status=409)
-            else:
-                return JsonResponse({'error': 'Invalid or no file provided'}, status=400)
-        else:
-            return JsonResponse({'error': 'Invalid request method'}, status=405)
+                    return JsonResponse({'error': f'Error trying to create census: {str(e)}'}, status=500)
 
+            return JsonResponse({'error': 'Invalid or no file provided'}, status=400)
+
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class ExportCensusToCSV(View):
 
     def get(self, request):
-        # Obtiene todos los datos del censo que deseas exportar
         census_data = Census.objects.all()
 
-        # Exporta los datos a CSV
         response = self.export_to_csv(census_data)
 
         return response
 
     def export_to_csv(self, census_data):
-        # Crea una respuesta HTTP con el tipo de contenido adecuado para un archivo CSV
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="census.csv"'
 
-        # Crea un escritor CSV y escribe los encabezados
         writer = csv.writer(response)
-        writer.writerow(['Voting ID', 'Voter ID'])
+        writer.writerow(['Voting ID', 'Voter ID', 'Creation Date', 'Additional Info'])
 
-        # Escribe los datos del censo en el archivo CSV
         for census in census_data:
-            writer.writerow([census.voting_id, census.voter_id])
+            writer.writerow([census.voting_id, census.voter_id, census.creation_date, census.additional_info])
 
         return response
 
+
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class ExportCensusToJSON(View):
 
     def get(self, request):
@@ -192,12 +252,13 @@ class ExportCensusToJSON(View):
         return response
 
     def export_to_json(self, census_data):
-        # Crear una estructura de datos que se convertirá a JSON
         export_data = []
         for census in census_data:
             export_data.append({
                 'voting_id': census.voting_id,
                 'voter_id': census.voter_id,
+                'creation_date': census.creation_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'additional_info': census.additional_info,
             })
 
         json_data = json.dumps(export_data, indent=2, default=str)
@@ -208,6 +269,8 @@ class ExportCensusToJSON(View):
         return response
 
 
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
 class ExportCensusToXLSX(View):
 
     def get(self, request):
@@ -217,29 +280,50 @@ class ExportCensusToXLSX(View):
 
     def export_to_excel(self, census_data):
         if not census_data:
-            # Manejar el caso en que no haya datos en el censo
             return HttpResponse('No hay datos para exportar a Excel.', status=204)
 
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
 
-        # Agrega encabezados dinámicamente basándote en los campos del modelo Census
-        headers = [field.name for field in Census._meta.get_fields()]
+        headers = [field.name for field in Census._meta.get_fields() if field.name != 'id']
         worksheet.append(headers)
 
-        # Agrega datos del censo
         for census in census_data:
-            data_row = [getattr(census, field) for field in headers]
+            formatted_date = census.creation_date.strftime('%Y-%m-%d %H:%M:%S')
+            data_row = [getattr(census, field) if field != 'creation_date' else formatted_date for field in headers]
             worksheet.append(data_row)
 
-        # Genera un nombre de archivo dinámico con la fecha actual
         file_name = f"census_export_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{file_name}"'
-        workbook.save(response)
 
-        # Cierra el libro de trabajo para liberar recursos
+        workbook.save(response)
         workbook.close()
+
+        return response
+
+@method_decorator(user_passes_test(lambda u: u.is_authenticated and u.is_staff), name='dispatch')
+@method_decorator(csrf_protect, name='dispatch')
+class ExportCensusToXML(View):
+    def get(self, request):
+        census_data = Census.objects.all()
+        response = self.export_to_xml(census_data)
+        return response
+
+    def export_to_xml(self, census_data):
+        root = ET.Element("CensusData")
+
+        for census in census_data:
+            census_element = ET.SubElement(root, "Census")
+            ET.SubElement(census_element, "VotingID").text = str(census.voting_id)
+            ET.SubElement(census_element, "VoterID").text = str(census.voter_id)
+            ET.SubElement(census_element, "CreationDate").text = census.creation_date.strftime('%Y-%m-%d %H:%M:%S')
+            ET.SubElement(census_element, "AdditionalInfo").text = census.additional_info
+
+        xml_data = ET.tostring(root, encoding="utf-8")
+
+        response = HttpResponse(xml_data, content_type="application/xml")
+        response["Content-Disposition"] = 'attachment; filename="census.xml"'
 
         return response

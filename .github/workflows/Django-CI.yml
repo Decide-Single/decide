@@ -1,0 +1,78 @@
+name: Django CI
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_call:
+    secrets:
+      CODACY_PROJECT_TOKEN:
+        required: true
+
+env:
+  DATABASE_INT_URL: postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a/decidedb_ksdl
+  DATABASE_EXT_URL: postgres://admin:a7qrFICWjm4gjSIRPbVWaAtvjzernCyg@dpg-clqtjgqe9h4c73aq41fg-a.oregon-postgres.render.com/decidedb_ksdl
+  SECRET_KEY: dev
+  DEBUG: True
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: decideuser
+          POSTGRES_PASSWORD: decidepass123
+          POSTGRES_DB: decidedb
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10.12
+
+
+      - name: psycopg2 prerequisites
+        run: sudo apt-get install libpq-dev
+
+      # - name: Use variables
+      #   run: |
+      #     echo 'Utilizando variables de entorno'
+      #   env:
+      #     DATABASE_INT_URL: ${{ secrets.DATABASE_INT_URL }}
+      #     DATABASE_EXT_URL: ${{ secrets.DATABASE_EXT_URL }}
+      #     SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      #     DEBUG: ${{ secrets.DEBUG }}
+
+      - name: Install dependencies and config
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install codacy-coverage
+      - name: Run migrations (unnecessary)
+        run: |
+          cd decide
+          python manage.py migrate
+      - name: Run tests
+        run: |
+          cd decide
+          coverage run --branch --source=. ./manage.py test  --keepdb 
+          coverage xml
+      - name: Codacy Coverage Reporter
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: decide/coverage.xml
