@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   buildTest:
-    uses: eg-L5/decide-single-joaquin1/.github/workflows/Django-CI.yml@master
+    uses: ./.github/workflows/Django-CI.yml@master
     secrets: 
       CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
      
