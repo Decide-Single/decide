@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <div class="container mt-5">
     <h1 class="mb-4">New Question</h1>
     <form method="post">
         {% csrf_token %}
         <div class="mb-3">
             <label for="{{ form.desc.id_for_label }}" class="form-label">Description</label>
+            <br>
             {{ form.desc }}
         </div>
         <div class="mb-3">
             <label for="{{ form.question_type.id_for_label }}" class="form-label">Question type</label>
+            <br>
             {{ form.question_type }}
         </div>
         {{ formset.management_form }}
@@ -19,6 +22,7 @@
             {% for form in formset %}
             <div class="mb-3">
                 <label for="{{ form.option.id_for_label }}" class="form-label">Option {{ forloop.counter }}</label>
+                <br>
                 {{ form.option }}
             </div>
             {% endfor %}

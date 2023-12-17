@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <div class="container mt-5">
     <h1 class="mb-4">Questions</h1>
 
@@ -22,24 +23,26 @@
                     <td>{{ question.desc }}</td>
                     <td>
                         {% if question.question_type == 'YESNO' %}
-                            Yes/No
+                            <span class="badge bg-info">Yes/No</span>
                         {% else %}
-                            Default
+                            <span class="badge bg-secondary">Default</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if question.options.all %}
-                            {% for option in question.options.all %}
-                            <li>{{ option }}</li>
-                            {% endfor %}
+                            <ul class="list-unstyled">
+                                {% for option in question.options.all %}
+                                <li>{{ option }}</li>
+                                {% endfor %}
+                            </ul>
                         {% else %}
-                            <li>No options for this question.</li>
+                            <span class="text-muted">No options for this question.</span>
                         {% endif %}
                     </td>
                     <td>
                         <form method="POST" action="{% url 'question_delete' question.id %}">
                             {% csrf_token %}
-                            <button type="submit">Delete</button>
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -48,7 +51,7 @@
     </table>
     <a href="{% url 'question_add' %}" class="btn btn-primary">New Question</a>
     {% else %}
-    <h2>There's no questions. <a href="{% url 'question_add' %}">Create the first one!</a></h2>
+    <h2>There's no questions. <a href="{% url 'question_add' %}" class="btn btn-primary">Create the first one!</a></h2>
     {% endif %} 
 </div>
 {% endblock %}
